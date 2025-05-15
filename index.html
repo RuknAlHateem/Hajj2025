@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>تحديث الحالة الصحية</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <style>
+    * { font-family: 'Cairo', sans-serif; }
+    body {
+      background: #f0f2f5;
+      padding: 30px;
+      max-width: 700px;
+      margin: auto;
+      text-align: center;
+    }
+    .form-box {
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 25px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      margin-bottom: 30px;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 15px;
+      text-align: right;
+    }
+    input, select {
+      width: 96%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    button {
+      background: #198754;
+      color: white;
+      padding: 12px 25px;
+      margin-top: 25px;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #157347;
+    }
+    #loader {
+      display: none;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="mainContent">
+
+
+
+
+
+    <div style="background: white; padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+        <img src="logo.png" alt="شعار الشركة" style="height: 80px;">
+        <h2 style="color: #198754;">شركة ركن الحطيم للحج</h2>
+        <p>تحديث الحالة الصحية لحجاج ١٤٤٦ هـ</p>
+      </div>
+
+
+
+
+  <div class="form-box">
+    <h2>تحديث الحالة الصحية</h2>
+    <label>رقم الهوية الوطنية:</label>
+    <input type="text" id="nationalId" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g, '')">
+    <button onclick="searchPerson()">بحث</button>
+    <div id="loader"><img src="https://i.imgur.com/llF5iyg.gif" width="40"><br>جاري التحميل...</div>
+  </div>
+
+</div>
+
+
+<div style="margin-top: 40px; text-align: center; padding: 20px; border-top: 1px solid #ccc;">
+    <p style="margin-bottom: 10px;">
+
+      عند مواجهتك أي مشكلة في تعبئة النموذج، يمكنك التواصل مع الدعم الفني الخاص بشركة ركن الحطيم عبر واتساب
+      0539617330:    </p>
+    <a href="https://wa.me/966539617330" target="_blank"
+       style="display:inline-block; padding:10px 20px; background:#25D366; color:white; border-radius:5px; text-decoration:none; font-weight:bold;">
+      التواصل عبر واتساب
+    </a>
+  </div>
+    <div id="loader">
+    <img src="https://i.imgur.com/llF5iyg.gif" alt="جارٍ التحميل" width="40"><br>جاري التحقق...
+  </div>
+</div>
+
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCjLt3g-2GPsMlxXPnzySXpCHl3-FyA80I",
+    authDomain: "hajj2025-56177.firebaseapp.com",
+    projectId: "hajj2025-56177",
+    storageBucket: "hajj2025-56177.appspot.com",
+    messagingSenderId: "199404422758",
+    appId: "1:199404422758:web:35a17e6155f660e0128fa7"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  let currentId = "";
+  let currentName = "";
+
+  async function searchPerson() {
+    const id = document.getElementById("nationalId").value.trim();
+    if (!id) return alert("يرجى إدخال رقم الهوية");
+
+    document.getElementById("loader").style.display = "block";
+
+    const doc = await db.collection("بيانات الحجاج").doc(id).get();
+    document.getElementById("loader").style.display = "none";
+
+    if (!doc.exists) {
+      alert("لا يوجد سجل بهذا الرقم");
+      return;
+    }
+
+    const data = doc.data();
+    currentId = data["رقم_الهوية"];
+    currentName = data["الاسم"];
+
+    // تغيير محتوى الصفحة بالكامل
+    document.getElementById("mainContent").innerHTML = `
+      <div class="form-box">
+        <h2>البيانات الأساسية</h2>
+        <p><strong>الاسم:</strong> ${currentName}</p>
+        <p><strong>رقم الهوية:</strong> ${currentId}</p>
+
+        <label>الحالة الصحية:</label>
+        <select id="healthStatus">
+          <option value="">اختر الحالة</option>
+          <option value="مرض السلياك فقط">مرض السلياك فقط</option>
+          <option value="حساسية القمح">حساسية القمح</option>
+          <option value="مرض السلياك وحساسية القمح">مرض السلياك وحساسية القمح</option>
+        </select>
+
+        <button onclick="saveHealthStatus()">حفظ الحالة الصحية</button>
+        <div id="loader"><img src="https://i.imgur.com/llF5iyg.gif" width="40"><br>جاري الحفظ...</div>
+      </div>
+    `;
+  }
+
+  async function saveHealthStatus() {
+    const status = document.getElementById("healthStatus").value;
+    if (!status) return alert("يرجى اختيار الحالة الصحية");
+
+    document.getElementById("loader").style.display = "block";
+
+    await db.collection("الحالة الصحية").doc(currentId).set({
+      رقم_الهوية: currentId,
+      الاسم: currentName,
+      الحالة_الصحية: status,
+      تاريخ_الإدخال: new Date().toISOString()
+    });
+
+    document.getElementById("mainContent").innerHTML = `
+      <div style="text-align:center; padding: 40px;">
+        <img src="logo.png" alt="شعار الشركة" style="height: 80px; margin-bottom: 20px;">
+        <h2 style="color:#198754;">شكراً لتحديث الحالة الصحية</h2>
+        <p style="font-size:18px;">نسأل الله أن يكتب لكم الأجر والتوفيق في خدمة ضيوف الرحمن</p>
+      </div>
+    `;
+  }
+</script>
+
+</body>
+</html>
