@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>عرض الحالات الصحية</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    * { font-family: 'Cairo', sans-serif; }
+    body {
+      background: #f0f2f5;
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
+    }
+    h2 {
+      color: #198754;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 12px;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+    th {
+      background: #198754;
+      color: white;
+    }
+    button {
+      background: #198754;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      margin: 10px 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #157347;
+    }
+    #loader {
+      text-align: center;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>قائمة الحجاج المسجلين بالحالة الصحية</h2>
+
+<div style="text-align: center;">
+  <button onclick="exportTable('xlsx')">تصدير Excel</button>
+  <button onclick="exportTable('csv')">تصدير CSV</button>
+</div>
+
+<div id="loader">
+  <img src="https://i.imgur.com/llF5iyg.gif" width="40"><br>جاري تحميل البيانات...
+</div>
+
+<table id="dataTable" style="display:none;">
+  <thead>
+    <tr>
+      <th>الاسم</th>
+      <th>رقم الهوية</th>
+      <th>الجنس</th>
+      <th>الحالة الصحية</th>
+    </tr>
+  </thead>
+  <tbody id="tableBody">
+  </tbody>
+</table>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCjLt3g-2GPsMlxXPnzySXpCHl3-FyA80I",
+    authDomain: "hajj2025-56177.firebaseapp.com",
+    projectId: "hajj2025-56177",
+    storageBucket: "hajj2025-56177.appspot.com",
+    messagingSenderId: "199404422758",
+    appId: "1:199404422758:web:35a17e6155f660e0128fa7"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  let dataRows = [];
+
+  async function loadData() {
+    const snapshot = await db.collection("الحالة الصحية").get();
+    const tbody = document.getElementById("tableBody");
+    dataRows = [];
+
+    for (const doc of snapshot.docs) {
+      const d = doc.data();
+      const id = d["رقم_الهوية"];
+      const name = d["الاسم"] || "";
+      const health = d["الحالة_الصحية"] || "";
+
+      let gender = "";
+      try {
+        const person = await db.collection("بيانات الحجاج").doc(id).get();
+        if (person.exists) {
+          gender = person.data()["الجنس"] || "";
+        }
+      } catch (e) {
+        console.error("خطأ في جلب الجنس:", e);
+      }
+
+      const row = [name, id, gender, health];
+      dataRows.push(row);
+
+      const tr = document.createElement("tr");
+      row.forEach(cell => {
+        const td = document.createElement("td");
+        td.textContent = cell;
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    }
+
+    document.getElementById("loader").style.display = "none";
+    document.getElementById("dataTable").style.display = "table";
+  }
+
+  function exportTable(type) {
+    const headers = ["الاسم", "رقم الهوية", "الجنس", "الحالة الصحية"];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
+    XLSX.utils.book_append_sheet(wb, ws, "الحالة الصحية");
+    const filename = "الحالة_الصحية." + type;
+    XLSX.writeFile(wb, filename);
+  }
+
+  loadData();
+</script>
+
+</body>
+</html>
