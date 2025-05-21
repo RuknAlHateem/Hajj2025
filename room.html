@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>استعلام الحجاج</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      max-width: 400px;
+      margin: auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .header img {
+      width: 180px;
+      margin-bottom: 10px;
+    }
+    .header h1 {
+      font-size: 18px;
+      margin: 0;
+      color: #2d9958;
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #2d9958;
+      color: white;
+      border: none;
+    }
+    .card {
+  margin-top: 20px;
+  background: linear-gradient(145deg, #ffffff, #f0f0f0);
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  padding: 24px;
+  border: 1px solid #ddd;
+  direction: rtl;
+  text-align: right;
+  position: relative;
+}
+
+.card::before {
+  content: "بطاقة الحاج";
+  position: absolute;
+  top: -14px;
+  right: 16px;
+  background-color: #2d9958;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.card div {
+  font-size: 16px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background-color: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #eee;
+}
+
+.card div strong {
+  color: #2d9958;
+  display: inline-block;
+  width: 110px;
+}
+
+    .card div {
+      margin-bottom: 10px;
+    }
+    .not-found {
+      margin-top: 20px;
+      color: red;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="logo.png" alt="شعار الشركة" />
+      <h1>استعلام معلومات حجاج شركة ركن الحطيم للحج</h1>
+    </div>
+
+    <input type="tel" id="idNumber" placeholder="أدخل رقم الهوية" maxlength="10" pattern="[0-9]*" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)" />
+    <button onclick="searchHaji()">استعلام</button>
+    <div id="spinner" style="display:none; text-align:center; margin-top:20px;">
+      <img src="https://i.imgur.com/llF5iyg.gif" alt="جاري التحميل..." width="40" />
+    </div>
+
+    <div id="result"></div>
+  </div>
+
+  <!-- Firebase scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCjLt3g-2GPsMlxXPnzySXpCHl3-FyA80I",
+    authDomain: "hajj2025-56177.firebaseapp.com",
+    projectId: "hajj2025-56177",
+    storageBucket: "hajj2025-56177.appspot.com",
+    messagingSenderId: "199404422758",
+    appId: "1:199404422758:web:35a17e6155f660e0128fa7"
+  };
+
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    async function searchHaji() {
+  const id = document.getElementById('idNumber').value.trim();
+  const resultDiv = document.getElementById('result');
+  const spinner = document.getElementById('spinner');
+  resultDiv.innerHTML = '';
+  spinner.style.display = 'block'; // إظهار السبينر
+
+  if (!id) {
+    alert('يرجى إدخال رقم الهوية');
+    spinner.style.display = 'none';
+    return;
+  }
+
+  try {
+    const snapshot = await db.collection("بيانات الحجاج")
+      .where("رقم_الهوية", "==", id)
+      .limit(1)
+      .get();
+
+    spinner.style.display = 'none'; // إخفاء السبينر بعد الاستعلام
+
+    if (snapshot.empty) {
+      resultDiv.innerHTML = '<div class="not-found">لا يوجد حاج بهذا الرقم</div>';
+      return;
+    }
+
+    const data = snapshot.docs[0].data();
+    const name = data["الاسم"] || "-";
+    const room = data["رقم_الغرفة"] || "-";
+
+    resultDiv.innerHTML = `
+      <div class="card">
+        <div><strong>الاسم:</strong> ${name}</div>
+        <div><strong>رقم الهوية:</strong> ${id}</div>
+        <div><strong>رقم الغرفة:</strong> ${room}</div>
+      </div>
+    `;
+  } catch (error) {
+    spinner.style.display = 'none';
+    resultDiv.innerHTML = '<div class="not-found">حدث خطأ في البحث</div>';
+    console.error(error);
+  }
+}
+
+
+
+  </script>
+</body>
+</html>
