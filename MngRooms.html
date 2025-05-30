@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>إدارة الغرف والأسرة</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Cairo', sans-serif;
+    }
+    body {
+      background: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #2d9958;
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .filters button {
+      padding: 8px 16px;
+      background-color: #2d9958;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .search-container {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .search-container input {
+      width: 300px;
+      max-width: 90%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #2d9958;
+      color: white;
+    }
+    td button {
+      background-color: #44bde7;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 99;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.4);
+    }
+    .modal-content {
+      background-color: white;
+      margin: 10% auto;
+      padding: 20px;
+      border: 1px solid #ccc;
+      width: 90%;
+      max-width: 400px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .modal input {
+      width: 90%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    .modal p {
+      margin: 4px 0;
+      font-size: 15px;
+    }
+    .modal button {
+      background-color: #2d9958;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    #snackbar {
+      visibility: hidden;
+      min-width: 250px;
+      background-color: #2d9958;
+      color: white;
+      text-align: center;
+      border-radius: 8px;
+      padding: 16px;
+      position: fixed;
+      z-index: 100;
+      right: 30px;
+      bottom: 30px;
+      font-size: 16px;
+    }
+    #snackbar.show {
+      visibility: visible;
+      animation: fadein 0.5s, fadeout 0.5s 2.5s;
+    }
+    @keyframes fadein {
+      from { bottom: 0; opacity: 0; }
+      to { bottom: 30px; opacity: 1; }
+    }
+    @keyframes fadeout {
+      from { bottom: 30px; opacity: 1; }
+      to { bottom: 0; opacity: 0; }
+    }
+
+    tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+tbody tr:nth-child(odd) {
+  background-color: #ffffff;
+}
+.gender-cell.female {
+  background-color: #ffe6f0;
+}
+.gender-cell.male {
+  background-color: #e6f9e6;
+}
+.container {
+  text-align: center;
+}
+.header img {
+  width: 160px;
+  margin-bottom: 10px;
+}
+
+  </style>
+</head>
+<body>
+
+
+  <div class="container">
+    <div class="header">
+      <img src="logo.png" alt="شعار الشركة" />
+    </div>
+  </div>
+  
+  <h1>إدارة الغرف والأسرة</h1>
+
+  <div class="search-container">
+    <input type="text" id="searchInput" placeholder="ابحث بالاسم أو رقم الهوية" oninput="applySearch()" />
+  </div>
+
+  <div class="filters" id="filterButtons">
+    <button onclick="filterData('all')">عرض الكل</button>
+    <button onclick="filterData('noRoom')">بدون غرفة</button>
+    <button onclick="filterData('noBed')">بدون سرير</button>
+    <button onclick="filterData('ذكر')">ذكور فقط</button>
+    <button onclick="filterData('أنثى')">إناث فقط</button>
+  </div>
+
+  <div class="filters" id="roomFilterButtons"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>رقم الهوية</th>
+        <th>الجنس</th>
+        <th>الاسم</th>
+        <th>رقم الغرفة</th>
+        <th>رقم السرير</th>
+        <th>تعديل</th>
+      </tr>
+    </thead>
+    <tbody id="hajjTable">
+      <tr><td colspan="7">جارٍ التحميل...</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <h3>تعديل البيانات</h3>
+      <p id="modalName"></p>
+      <p id="modalId"></p>
+      <p id="modalGender"></p>
+      <input type="text" id="editRoom" placeholder="رقم الغرفة" />
+      <input type="text" id="editBed" placeholder="رقم السرير" />
+      <button onclick="saveChanges()">حفظ</button>
+      <button onclick="closeModal()">إلغاء</button>
+    </div>
+  </div>
+
+  <!-- Snackbar -->
+  <div id="snackbar">تم الحفظ بنجاح</div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCjLt3g-2GPsMlxXPnzySXpCHl3-FyA80I",
+      authDomain: "hajj2025-56177.firebaseapp.com",
+      projectId: "hajj2025-56177",
+      storageBucket: "hajj2025-56177.appspot.com",
+      messagingSenderId: "199404422758",
+      appId: "1:199404422758:web:35a17e6155f660e0128fa7"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    let hajjData = [];
+    let currentEditId = "";
+
+    async function loadData() {
+      const snapshot = await db.collection("بيانات الحجاج").get();
+      hajjData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderRoomButtons();
+      applySearch();
+    }
+
+    function renderTable(data) {
+      const tbody = document.getElementById('hajjTable');
+      tbody.innerHTML = "";
+      if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7">لا توجد بيانات</td></tr>';
+        return;
+      }
+      data.forEach((haj, index) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+  <td>${index + 1}</td>
+  <td>${haj["رقم_الهوية"] || '-'}</td>
+  <td class="gender-cell ${haj["الجنس"] === 'أنثى' ? 'female' : 'male'}">${haj["الجنس"] || '-'}</td>
+  <td>${haj["الاسم"] || '-'}</td>
+  <td>${haj["رقم_الغرفة"] || '-'}</td>
+  <td>${haj["رقم_السرير"] || '-'}</td>
+  <td><button onclick="openEdit('${haj.id}')">تعديل</button></td>
+`;
+
+        tbody.appendChild(row);
+      });
+    }
+
+    function openEdit(id) {
+      currentEditId = id;
+      const haj = hajjData.find(h => h.id === id);
+      document.getElementById('modalName').textContent = `الاسم: ${haj["الاسم"] || '-'}`;
+      document.getElementById('modalId').textContent = `رقم الهوية: ${haj["رقم_الهوية"] || '-'}`;
+      document.getElementById('modalGender').textContent = `الجنس: ${haj["الجنس"] || '-'}`;
+      document.getElementById('editRoom').value = haj["رقم_الغرفة"] || '';
+      document.getElementById('editBed').value = haj["رقم_السرير"] || '';
+      document.getElementById('editModal').style.display = 'block';
+    }
+
+    function closeModal() {
+      document.getElementById('editModal').style.display = 'none';
+    }
+
+    async function saveChanges() {
+      const room = document.getElementById('editRoom').value.trim();
+      const bed = document.getElementById('editBed').value.trim();
+      await db.collection("بيانات الحجاج").doc(currentEditId).update({
+        "رقم_الغرفة": room,
+        "رقم_السرير": bed
+      });
+      closeModal();
+      showSnackbar("تم الحفظ بنجاح");
+      loadData();
+    }
+
+    function showSnackbar(msg) {
+      const sb = document.getElementById("snackbar");
+      sb.textContent = msg;
+      sb.className = "show";
+      setTimeout(() => sb.className = sb.className.replace("show", ""), 3000);
+    }
+
+    window.onclick = function(event) {
+      if (event.target === document.getElementById('editModal')) {
+        closeModal();
+      }
+    }
+
+    document.addEventListener('keydown', function (e) {
+      const modal = document.getElementById('editModal');
+      if (modal.style.display === 'block') {
+        if (e.key === "Enter") saveChanges();
+        if (e.key === "Escape") closeModal();
+      }
+    });
+
+    function filterData(type) {
+      let filtered = [...hajjData];
+      if (type === 'noRoom') filtered = filtered.filter(h => !h["رقم_الغرفة"]);
+      else if (type === 'noBed') filtered = filtered.filter(h => !h["رقم_السرير"]);
+      else if (type === 'ذكر' || type === 'أنثى') filtered = filtered.filter(h => h["الجنس"] === type);
+      else if (type !== 'all') filtered = filtered.filter(h => h["رقم_الغرفة"] === type);
+      renderTable(filtered.filter(applySearchFilter));
+    }
+
+    function renderRoomButtons() {
+      const container = document.getElementById('roomFilterButtons');
+      const rooms = [...new Set(hajjData.map(h => h["رقم_الغرفة"]).filter(Boolean))].sort();
+      container.innerHTML = '';
+      rooms.forEach(room => {
+        const btn = document.createElement('button');
+        btn.textContent = `الغرفة ${room}`;
+        btn.onclick = () => filterData(room);
+        container.appendChild(btn);
+      });
+    }
+
+    function applySearch() {
+      filterData('all');
+    }
+
+    function applySearchFilter(haj) {
+      const input = document.getElementById("searchInput").value.toLowerCase();
+      return (
+        !input ||
+        (haj["الاسم"] || "").toLowerCase().includes(input) ||
+        (haj["رقم_الهوية"] || "").includes(input)
+      );
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
