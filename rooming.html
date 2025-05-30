@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>تسكين الحجاج</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Cairo', sans-serif; }
+    body {
+      background: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+    .container { text-align: center; margin-bottom: 20px; }
+    .header img { width: 160px; margin-bottom: 10px; }
+    button {
+      padding: 12px 24px;
+      background-color: #2d9958;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px 5px;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 99;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.4);
+      overflow-y: auto;
+    }
+    .modal-content {
+      background-color: white;
+      margin: 40px auto;
+      padding: 20px;
+      border: 1px solid #ccc;
+      width: 90%;
+      max-width: 800px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    select, textarea, input[type="password"] {
+      width: 90%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #2d9958;
+      color: white;
+    }
+    .room-cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      margin-top: 30px;
+    }
+    .room-card {
+      background: white;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      width: 300px;
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+    }
+    .room-card h3 { margin: 0; color: #2d9958; }
+    .room-card input[type="text"] {
+      margin: 10px 0;
+      padding: 6px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .room-card .list {
+      flex-grow: 1;
+      overflow-y: auto;
+      max-height: 280px;
+      border-top: 1px solid #eee;
+      padding-top: 8px;
+    }
+    .room-card .haji {
+      margin-bottom: 10px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 6px;
+    }
+    .room-card .haji-name {
+      font-weight: bold;
+      font-size: 15px;
+    }
+    .room-card .haji-id {
+      font-size: 13px;
+      color: gray;
+    }
+    #loading {
+      display: none;
+      text-align: center;
+      margin-top: 10px;
+    }
+    #passwordError {
+      color: red;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <img src="logo.png" alt="شعار الشركة" />
+  </div>
+  <button onclick="openModal()">تسكين الحجاج</button>
+</div>
+
+<!-- نافذة التسكين -->
+<div id="assignModal" class="modal">
+  <div class="modal-content">
+    <h3>تسكين الحجاج</h3>
+    <select id="roomSelect">
+      <option value="">اختر رقم الغرفة</option>
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+    </select>
+    <textarea id="idList" rows="8" placeholder="أدخل أرقام الهوية، كل سطر رقم"></textarea>
+    <button onclick="prepareAssignment()">تحضير التسكين</button>
+    <button onclick="closeModal()" style="background-color: gray;">إلغاء</button>
+    <div id="loading"><img src="https://i.imgur.com/llF5iyg.gif" width="40" alt="جاري التحميل..." /></div>
+    <div id="resultsSection" style="display:none;">
+      <h4>الحجاج المسجلين</h4>
+      <table id="successTable"><thead><tr><th>رقم الهوية</th><th>الاسم</th></tr></thead><tbody></tbody></table>
+      <h4>غير موجودين</h4>
+      <table id="notFoundTable"><thead><tr><th>رقم الهوية</th></tr></thead><tbody></tbody></table>
+      <button onclick="confirmAssignment()">تأكيد التسكين</button>
+    </div>
+  </div>
+</div>
+
+<!-- نافذة تأكيد تفريغ الغرفة بكلمة مرور -->
+<div id="passwordModal" class="modal">
+  <div class="modal-content" style="max-width: 400px;">
+    <h3>تأكيد تفريغ الغرفة</h3>
+    <p>الرجاء إدخال كلمة المرور:</p>
+    <input type="password" id="roomPassword" placeholder="كلمة المرور">
+    <p id="passwordError"></p>
+    <button onclick="submitClearRoom()">تأكيد</button>
+    <button onclick="closePasswordModal()" style="background-color: gray;">إلغاء</button>
+  </div>
+</div>
+
+<div class="room-cards" id="roomCards"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCjLt3g-2GPsMlxXPnzySXpCHl3-FyA80I",
+    authDomain: "hajj2025-56177.firebaseapp.com",
+    projectId: "hajj2025-56177",
+    storageBucket: "hajj2025-56177.appspot.com",
+    messagingSenderId: "199404422758",
+    appId: "1:199404422758:web:35a17e6155f660e0128fa7"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  let preparedList = [], selectedRoom = "", targetRoomToClear = "";
+
+  function openModal() {
+    document.getElementById('assignModal').style.display = 'block';
+    document.getElementById('resultsSection').style.display = 'none';
+    document.getElementById('idList').value = '';
+    document.getElementById('roomSelect').value = '';
+    document.getElementById('loading').style.display = 'none';
+  }
+
+  function closeModal() {
+    document.getElementById('assignModal').style.display = 'none';
+  }
+
+  async function prepareAssignment() {
+    selectedRoom = document.getElementById("roomSelect").value;
+    const idsRaw = document.getElementById("idList").value.trim().split("\n");
+    const ids = [...new Set(idsRaw.map(id => id.trim()).filter(Boolean))];
+    if (!selectedRoom || ids.length === 0) return;
+    const successBody = document.querySelector("#successTable tbody");
+    const notFoundBody = document.querySelector("#notFoundTable tbody");
+    successBody.innerHTML = "";
+    notFoundBody.innerHTML = "";
+    preparedList = [];
+    document.getElementById('loading').style.display = 'block';
+    for (let id of ids) {
+      const snapshot = await db.collection("بيانات الحجاج").where("رقم_الهوية", "==", id).limit(1).get();
+      if (snapshot.empty) {
+        notFoundBody.innerHTML += `<tr><td>${id}</td></tr>`;
+      } else {
+        const doc = snapshot.docs[0];
+        const data = doc.data();
+        preparedList.push({ id: doc.id, رقم_الهوية: id, الاسم: data["الاسم"] || "-" });
+        successBody.innerHTML += `<tr><td>${id}</td><td>${data["الاسم"] || "-"}</td></tr>`;
+      }
+    }
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('resultsSection').style.display = 'block';
+  }
+
+  async function confirmAssignment() {
+    document.getElementById('loading').style.display = 'block';
+    for (let item of preparedList) {
+      await db.collection("بيانات الحجاج").doc(item.id).update({ "رقم_الغرفة": selectedRoom });
+    }
+    document.getElementById('loading').style.display = 'none';
+    closeModal();
+    loadRoomCards();
+  }
+
+  async function loadRoomCards() {
+    const snapshot = await db.collection("بيانات الحجاج").get();
+    const grouped = {};
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const room = data["رقم_الغرفة"];
+      if (!room) return;
+      if (!grouped[room]) grouped[room] = [];
+      grouped[room].push({ id: doc.id, الاسم: data["الاسم"] || "-", الهوية: data["رقم_الهوية"] || "-" });
+    });
+
+    const container = document.getElementById("roomCards");
+    container.innerHTML = "";
+    Object.keys(grouped).sort().forEach(room => {
+      const id = `filter-${room}`;
+      const card = document.createElement("div");
+      card.className = "room-card";
+      card.innerHTML = `
+        <h3>الغرفة ${room} </h3>
+        <h3>${grouped[room].length} حاج</h3>
+
+        <input type="text" id="${id}" placeholder="بحث بالاسم أو الهوية" oninput="filterRoom('${room}')">
+        <div class="list" id="list-${room}">
+          ${grouped[room].map(p => `
+            <div class="haji">
+              <div class="haji-name">${p.الاسم}</div>
+              <div class="haji-id">${p.الهوية}</div>
+            </div>`).join("")}
+        </div>
+        <button style="background:#e8593a;" onclick="showPasswordModal('${room}')">تفريغ الغرفة</button>
+      `;
+      container.appendChild(card);
+    });
+
+    window.filterRoom = function(room) {
+      const input = document.getElementById(`filter-${room}`).value.trim().toLowerCase();
+      const listDiv = document.getElementById(`list-${room}`);
+      const filtered = grouped[room]
+        .filter(p => p.الاسم.toLowerCase().includes(input) || p.الهوية.includes(input))
+        .map(p => `<div class="haji"><div class="haji-name">${p.الاسم}</div><div class="haji-id">${p.الهوية}</div></div>`);
+      listDiv.innerHTML = filtered.join("");
+    };
+  }
+
+  function showPasswordModal(room) {
+    targetRoomToClear = room;
+    document.getElementById("roomPassword").value = "";
+    document.getElementById("passwordError").innerText = "";
+    document.getElementById("passwordModal").style.display = "block";
+  }
+
+  function closePasswordModal() {
+    document.getElementById("passwordModal").style.display = "none";
+  }
+
+  async function submitClearRoom() {
+    const enteredPassword = document.getElementById("roomPassword").value;
+    if (enteredPassword !== "13579") {
+      document.getElementById("passwordError").innerText = "كلمة المرور غير صحيحة.";
+      return;
+    }
+
+    closePasswordModal();
+    const snapshot = await db.collection("بيانات الحجاج").where("رقم_الغرفة", "==", targetRoomToClear).get();
+    for (let doc of snapshot.docs) {
+      await db.collection("بيانات الحجاج").doc(doc.id).update({
+        "رقم_الغرفة": firebase.firestore.FieldValue.delete()
+      });
+    }
+    loadRoomCards();
+  }
+
+  loadRoomCards();
+</script>
+</body>
+</html>
