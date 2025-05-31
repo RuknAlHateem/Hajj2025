@@ -159,17 +159,17 @@
     const data = snapshot.docs[0].data();
     const name = data["الاسم"] || "-";
     const room = data["رقم_الغرفة"] || "-";
-    const bed = data["رقم_السرير"] || "-";
+const bed = data["رقم_السرير"];
 
-
-    resultDiv.innerHTML = `
+resultDiv.innerHTML = `
   <div class="card">
     <div><strong>الاسم:</strong> ${name}</div>
     <div><strong>رقم الهوية:</strong> ${id}</div>
     <div><strong>رقم الغرفة:</strong> ${room}</div>
-    <div><strong>رقم السرير:</strong> ${bed}</div>
+    ${bed ? `<div><strong>رقم السرير:</strong> ${bed}</div>` : ''}
   </div>
 `;
+
 
   } catch (error) {
     spinner.style.display = 'none';
