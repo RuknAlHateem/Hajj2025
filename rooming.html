@@ -284,9 +284,7 @@ async function loadRoomCards() {
     const currentCount = grouped[room].length;
 
     let countText = `${currentCount} حاج`;
-    if (capacity !== undefined) {
-      countText += ` / ${capacity}`;
-    }
+
 
     card.innerHTML = `
       <h3>الغرفة ${room}</h3>
