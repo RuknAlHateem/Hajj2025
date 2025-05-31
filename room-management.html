@@ -85,33 +85,48 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    async function createRoom() {
-      const number = document.getElementById('newRoomNumber').value.trim();
-      const type = document.getElementById('newRoomType').value;
-      const capacity = document.getElementById('newRoomCapacity').value;
-      if (!number || !type || !capacity) return;
+async function createRoom() {
+  const number = document.getElementById('newRoomNumber').value.trim();
+  const type = document.getElementById('newRoomType').value;
+  const capacity = document.getElementById('newRoomCapacity').value;
 
-      await db.collection("rooms").doc(`${type === "رجال" ? "man" : "woman"}-${number}`).set({
-        number,
-        type,
-        capacity: parseInt(capacity)
-      });
+  // نخلي فقط رقم الغرفة والنوع إلزاميين
+  if (!number || !type) return;
 
-      document.getElementById('newRoomNumber').value = '';
-      document.getElementById('newRoomType').value = '';
-      document.getElementById('newRoomCapacity').value = '';
-      renderRooms();
-    }
+  const data = {
+    number,
+    type
+  };
 
-    async function renderRooms() {
-      const snapshot = await db.collection("rooms").get();
-      const list = document.getElementById('roomList');
-      list.innerHTML = "";
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        list.innerHTML += `<tr><td>${data.number}</td><td>${data.type}</td><td>${data.capacity}</td></tr>`;
-      });
-    }
+  if (capacity) {
+    data.capacity = parseInt(capacity);
+  }
+
+  await db.collection("rooms").doc(`${type === "رجال" ? "man" : "woman"}-${number}`).set(data);
+
+  document.getElementById('newRoomNumber').value = '';
+  document.getElementById('newRoomType').value = '';
+  document.getElementById('newRoomCapacity').value = '';
+  renderRooms();
+}
+
+
+ async function renderRooms() {
+  const snapshot = await db.collection("rooms").get();
+  const list = document.getElementById('roomList');
+  list.innerHTML = "";
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    list.innerHTML += `
+      <tr>
+        <td>${data.number}</td>
+        <td>${data.type}</td>
+        <td>${data.capacity ?? '-'}</td>
+      </tr>
+    `;
+  });
+}
+
 
     renderRooms();
   </script>
