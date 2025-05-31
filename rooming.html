@@ -135,13 +135,11 @@
 <div id="assignModal" class="modal">
   <div class="modal-content">
     <h3>تسكين الحجاج</h3>
+   
     <select id="roomSelect">
       <option value="">اختر رقم الغرفة</option>
-      <option value="1">1</option>
-      <option value="2">2</option>
-      <option value="3">3</option>
-      <option value="4">4</option>
     </select>
+    
     <textarea id="idList" rows="8" placeholder="أدخل أرقام الهوية، كل سطر رقم"></textarea>
     <button onclick="prepareAssignment()">تحضير التسكين</button>
     <button onclick="closeModal()" style="background-color: gray;">إلغاء</button>
@@ -185,12 +183,25 @@
   const db = firebase.firestore();
   let preparedList = [], selectedRoom = "", targetRoomToClear = "";
 
+  async function loadAvailableRooms() {
+  const select = document.getElementById("roomSelect");
+  select.innerHTML = '<option value="">اختر رقم الغرفة</option>';
+  const snapshot = await db.collection("rooms").get();
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    select.innerHTML += `<option value="${data.number}">${data.number} (${data.type})</option>`;
+  });
+}
+
+
   function openModal() {
     document.getElementById('assignModal').style.display = 'block';
     document.getElementById('resultsSection').style.display = 'none';
     document.getElementById('idList').value = '';
     document.getElementById('roomSelect').value = '';
     document.getElementById('loading').style.display = 'none';
+    loadAvailableRooms(); // <-- هنا الإضافة
+
   }
 
   function closeModal() {
@@ -235,7 +246,20 @@
 
   async function loadRoomCards() {
     const snapshot = await db.collection("بيانات الحجاج").get();
+    const roomsSnapshot = await db.collection("rooms").get();
     const grouped = {};
+    const roomsMap = {};
+    roomsSnapshot.forEach(doc => {
+      const data = doc.data();
+      grouped[data.number] = [];
+      roomsMap[data.number] = data;
+    });
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const room = data["رقم_الغرفة"];
+      if (!room || !grouped[room]) return;
+      grouped[room].push({ id: doc.id, الاسم: data["الاسم"] || "-", الهوية: data["رقم_الهوية"] || "-" });
+    });
     snapshot.forEach(doc => {
       const data = doc.data();
       const room = data["رقم_الغرفة"];
