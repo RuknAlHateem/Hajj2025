@@ -206,8 +206,9 @@ tbody tr:nth-child(odd) {
       <p id="modalName"></p>
       <p id="modalId"></p>
       <p id="modalGender"></p>
-      <input type="text" id="editRoom" placeholder="رقم الغرفة" />
-      <input type="text" id="editBed" placeholder="رقم السرير" />
+<select id="editRoomSelect">
+  <option value="">اختر الغرفة</option>
+</select>      <input type="text" id="editBed" placeholder="رقم السرير" />
       <button onclick="saveChanges()">حفظ</button>
       <button onclick="closeModal()">إلغاء</button>
     </div>
@@ -265,32 +266,56 @@ tbody tr:nth-child(odd) {
       });
     }
 
-    function openEdit(id) {
-      currentEditId = id;
-      const haj = hajjData.find(h => h.id === id);
-      document.getElementById('modalName').textContent = `الاسم: ${haj["الاسم"] || '-'}`;
-      document.getElementById('modalId').textContent = `رقم الهوية: ${haj["رقم_الهوية"] || '-'}`;
-      document.getElementById('modalGender').textContent = `الجنس: ${haj["الجنس"] || '-'}`;
-      document.getElementById('editRoom').value = haj["رقم_الغرفة"] || '';
-      document.getElementById('editBed').value = haj["رقم_السرير"] || '';
-      document.getElementById('editModal').style.display = 'block';
-    }
+function openEdit(id) {
+  currentEditId = id;
+  const haj = hajjData.find(h => h.id === id);
+
+  document.getElementById('modalName').textContent = `الاسم: ${haj["الاسم"] || '-'}`;
+  document.getElementById('modalId').textContent = `رقم الهوية: ${haj["رقم_الهوية"] || '-'}`;
+  document.getElementById('modalGender').textContent = `الجنس: ${haj["الجنس"] || '-'}`;
+  document.getElementById('editBed').value = haj["رقم_السرير"] || '';
+
+  // تعبئة قائمة الغرف
+  loadRoomOptions(haj["رقم_الغرفة"]);
+
+  document.getElementById('editModal').style.display = 'block';
+}
+
+    async function loadRoomOptions(selectedRoom) {
+  const select = document.getElementById('editRoomSelect');
+  select.innerHTML = '<option value="">اختر الغرفة</option>';
+
+  const snapshot = await db.collection("rooms").get();
+  const roomNumbers = snapshot.docs.map(doc => doc.data().number).sort((a, b) => a - b);
+
+  roomNumbers.forEach(room => {
+    const option = document.createElement('option');
+    option.value = room;
+    option.textContent = `الغرفة ${room}`;
+    if (room === selectedRoom) option.selected = true;
+    select.appendChild(option);
+  });
+}
+
 
     function closeModal() {
       document.getElementById('editModal').style.display = 'none';
     }
 
-    async function saveChanges() {
-      const room = document.getElementById('editRoom').value.trim();
-      const bed = document.getElementById('editBed').value.trim();
-      await db.collection("بيانات الحجاج").doc(currentEditId).update({
-        "رقم_الغرفة": room,
-        "رقم_السرير": bed
-      });
-      closeModal();
-      showSnackbar("تم الحفظ بنجاح");
-      loadData();
-    }
+   async function saveChanges() {
+  const room = document.getElementById('editRoomSelect').value.trim();
+  const bed = document.getElementById('editBed').value.trim();
+
+  await db.collection("بيانات الحجاج").doc(currentEditId).update({
+    "رقم_الغرفة": room,
+    "رقم_السرير": bed
+  });
+
+  closeModal();
+  showSnackbar("تم الحفظ بنجاح");
+  loadData();
+}
+
 
     function showSnackbar(msg) {
       const sb = document.getElementById("snackbar");
