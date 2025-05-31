@@ -246,62 +246,79 @@
 }
 
 
-  async function loadRoomCards() {
-    const snapshot = await db.collection("بيانات الحجاج").get();
-    const roomsSnapshot = await db.collection("rooms").get();
-    const grouped = {};
-    const roomsMap = {};
-    roomsSnapshot.forEach(doc => {
-      const data = doc.data();
-      grouped[data.number] = [];
-      roomsMap[data.number] = data;
-    });
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const room = data["رقم_الغرفة"];
-      if (!room || !grouped[room]) return;
-      grouped[room].push({ id: doc.id, الاسم: data["الاسم"] || "-", الهوية: data["رقم_الهوية"] || "-" });
-    });
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const room = data["رقم_الغرفة"];
-      if (!room) return;
-      if (!grouped[room]) grouped[room] = [];
-      grouped[room].push({ id: doc.id, الاسم: data["الاسم"] || "-", الهوية: data["رقم_الهوية"] || "-" });
-    });
+async function loadRoomCards() {
+  const snapshot = await db.collection("بيانات الحجاج").get();
+  const roomsSnapshot = await db.collection("rooms").get();
 
-    const container = document.getElementById("roomCards");
-    container.innerHTML = "";
-    Object.keys(grouped).sort().forEach(room => {
-      const id = `filter-${room}`;
-      const card = document.createElement("div");
-      card.className = "room-card";
-      card.innerHTML = `
-        <h3>الغرفة ${room} </h3>
-        <h3>${grouped[room].length} حاج</h3>
+  const grouped = {};
+  const roomsMap = {};
 
-        <input type="text" id="${id}" placeholder="بحث بالاسم أو الهوية" oninput="filterRoom('${room}')">
-        <div class="list" id="list-${room}">
-          ${grouped[room].map(p => `
-            <div class="haji">
-              <div class="haji-name">${p.الاسم}</div>
-              <div class="haji-id">${p.الهوية}</div>
-            </div>`).join("")}
-        </div>
-        <button style="background:#e8593a;" onclick="showPasswordModal('${room}')">تفريغ الغرفة</button>
-      `;
-      container.appendChild(card);
+  // تجهيز معلومات الغرف
+  roomsSnapshot.forEach(doc => {
+    const data = doc.data();
+    grouped[data.number] = [];
+    roomsMap[data.number] = data;
+  });
+
+  // توزيع الحجاج حسب رقم الغرفة
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    const room = data["رقم_الغرفة"];
+    if (!room || !grouped[room]) return;
+    grouped[room].push({
+      id: doc.id,
+      الاسم: data["الاسم"] || "-",
+      الهوية: data["رقم_الهوية"] || "-"
     });
+  });
 
-    window.filterRoom = function(room) {
-      const input = document.getElementById(`filter-${room}`).value.trim().toLowerCase();
-      const listDiv = document.getElementById(`list-${room}`);
-      const filtered = grouped[room]
-        .filter(p => p.الاسم.toLowerCase().includes(input) || p.الهوية.includes(input))
-        .map(p => `<div class="haji"><div class="haji-name">${p.الاسم}</div><div class="haji-id">${p.الهوية}</div></div>`);
-      listDiv.innerHTML = filtered.join("");
-    };
-  }
+  const container = document.getElementById("roomCards");
+  container.innerHTML = "";
+
+  Object.keys(grouped).sort().forEach(room => {
+    const id = `filter-${room}`;
+    const card = document.createElement("div");
+    card.className = "room-card";
+
+    const capacity = roomsMap[room]?.capacity;
+    const currentCount = grouped[room].length;
+
+    let countText = `${currentCount} حاج`;
+    if (capacity !== undefined) {
+      countText += ` / ${capacity}`;
+    }
+
+    card.innerHTML = `
+      <h3>الغرفة ${room}</h3>
+      <h3>${countText}</h3>
+      <input type="text" id="${id}" placeholder="بحث بالاسم أو الهوية" oninput="filterRoom('${room}')">
+      <div class="list" id="list-${room}">
+        ${grouped[room].map(p => `
+          <div class="haji">
+            <div class="haji-name">${p.الاسم}</div>
+            <div class="haji-id">${p.الهوية}</div>
+          </div>`).join("")}
+      </div>
+      <button style="background:#e8593a;" onclick="showPasswordModal('${room}')">تفريغ الغرفة</button>
+    `;
+    container.appendChild(card);
+  });
+
+  // فلترة حسب الاسم أو الهوية
+  window.filterRoom = function(room) {
+    const input = document.getElementById(`filter-${room}`).value.trim().toLowerCase();
+    const listDiv = document.getElementById(`list-${room}`);
+    const filtered = grouped[room]
+      .filter(p => p.الاسم.toLowerCase().includes(input) || p.الهوية.includes(input))
+      .map(p => `
+        <div class="haji">
+          <div class="haji-name">${p.الاسم}</div>
+          <div class="haji-id">${p.الهوية}</div>
+        </div>`);
+    listDiv.innerHTML = filtered.join("");
+  };
+}
+
 
   function showPasswordModal(room) {
     targetRoomToClear = room;
