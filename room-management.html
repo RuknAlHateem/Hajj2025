@@ -57,6 +57,8 @@
     <input type="number" id="newRoomCapacity" placeholder="العدد المسموح">
     <br>
     <button onclick="createRoom()">إنشاء الغرفة</button>
+    <div id="statusMessage"></div>
+
 
     <h2>قائمة الغرف</h2>
     <table>
@@ -89,9 +91,12 @@ async function createRoom() {
   const number = document.getElementById('newRoomNumber').value.trim();
   const type = document.getElementById('newRoomType').value;
   const capacity = document.getElementById('newRoomCapacity').value;
+  const status = document.getElementById('statusMessage');
 
   // نخلي فقط رقم الغرفة والنوع إلزاميين
   if (!number || !type) return;
+
+  status.textContent = "⏳ جاري إنشاء الغرفة...";
 
   const data = {
     number,
@@ -102,13 +107,19 @@ async function createRoom() {
     data.capacity = parseInt(capacity);
   }
 
-  await db.collection("rooms").doc(`${type === "رجال" ? "man" : "woman"}-${number}`).set(data);
+  try {
+    await db.collection("rooms").doc(`${type === "رجال" ? "man" : "woman"}-${number}`).set(data);
+    status.textContent = "✅ تم إنشاء الغرفة بنجاح";
+  } catch (error) {
+    status.textContent = "❌ حدث خطأ أثناء إنشاء الغرفة";
+  }
 
   document.getElementById('newRoomNumber').value = '';
   document.getElementById('newRoomType').value = '';
   document.getElementById('newRoomCapacity').value = '';
   renderRooms();
 }
+
 
 
  async function renderRooms() {
