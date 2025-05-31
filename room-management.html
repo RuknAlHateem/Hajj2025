@@ -1,0 +1,119 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إدارة الغرف</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Cairo', sans-serif; }
+    body { background: #f4f4f4; margin: 0; padding: 20px; text-align: center; }
+    h2 { color: #2d9958; }
+    input, select {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      width: 90%;
+      max-width: 300px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #2d9958;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #2d9958;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>إنشاء غرفة جديدة</h2>
+    <input type="text" id="newRoomNumber" placeholder="رقم الغرفة">
+    <select id="newRoomType">
+      <option value="">اختر النوع</option>
+      <option value="رجال">رجال</option>
+      <option value="نساء">نساء</option>
+    </select>
+    <input type="number" id="newRoomCapacity" placeholder="العدد المسموح">
+    <br>
+    <button onclick="createRoom()">إنشاء الغرفة</button>
+
+    <h2>قائمة الغرف</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>رقم الغرفة</th>
+          <th>النوع</th>
+          <th>العدد المسموح</th>
+        </tr>
+      </thead>
+      <tbody id="roomList"></tbody>
+    </table>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCjLt3g-2GPsMlxXPnzySXpCHl3-FyA80I",
+      authDomain: "hajj2025-56177.firebaseapp.com",
+      projectId: "hajj2025-56177",
+      storageBucket: "hajj2025-56177.appspot.com",
+      messagingSenderId: "199404422758",
+      appId: "1:199404422758:web:35a17e6155f660e0128fa7"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    async function createRoom() {
+      const number = document.getElementById('newRoomNumber').value.trim();
+      const type = document.getElementById('newRoomType').value;
+      const capacity = document.getElementById('newRoomCapacity').value;
+      if (!number || !type || !capacity) return;
+
+      await db.collection("rooms").doc(`${type === "رجال" ? "man" : "woman"}-${number}`).set({
+        number,
+        type,
+        capacity: parseInt(capacity)
+      });
+
+      document.getElementById('newRoomNumber').value = '';
+      document.getElementById('newRoomType').value = '';
+      document.getElementById('newRoomCapacity').value = '';
+      renderRooms();
+    }
+
+    async function renderRooms() {
+      const snapshot = await db.collection("rooms").get();
+      const list = document.getElementById('roomList');
+      list.innerHTML = "";
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        list.innerHTML += `<tr><td>${data.number}</td><td>${data.type}</td><td>${data.capacity}</td></tr>`;
+      });
+    }
+
+    renderRooms();
+  </script>
+</body>
+</html>
