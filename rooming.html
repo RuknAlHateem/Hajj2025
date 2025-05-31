@@ -141,7 +141,7 @@
     </select>
     
     <textarea id="idList" rows="8" placeholder="أدخل أرقام الهوية، كل سطر رقم"></textarea>
-   
+   <button onclick="assignAndShowResults()">تسكين الحجاج</button>
     <button onclick="closeModal()" style="background-color: gray;">إلغاء</button>
     <div id="loading"><img src="https://i.imgur.com/llF5iyg.gif" width="40" alt="جاري التحميل..." /></div>
     <div id="resultsSection" style="display:none;">
@@ -149,8 +149,6 @@
       <table id="successTable"><thead><tr><th>رقم الهوية</th><th>الاسم</th></tr></thead><tbody></tbody></table>
       <h4>غير موجودين</h4>
       <table id="notFoundTable"><thead><tr><th>رقم الهوية</th></tr></thead><tbody></tbody></table>
-<button onclick="assignAndShowResults()">تسكين الحجاج</button>
-          <div id="loading"><img src="https://i.imgur.com/llF5iyg.gif" width="40" alt="جاري التحميل..." /></div>
 
     </div>
   </div>
