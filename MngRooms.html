@@ -313,7 +313,7 @@ function openEdit(id) {
 
   closeModal();
   showSnackbar("تم الحفظ بنجاح");
-  loadData();
+filterData('all');
 }
 
 
@@ -338,14 +338,23 @@ function openEdit(id) {
       }
     });
 
-    function filterData(type) {
-      let filtered = [...hajjData];
-      if (type === 'noRoom') filtered = filtered.filter(h => !h["رقم_الغرفة"]);
-      else if (type === 'noBed') filtered = filtered.filter(h => !h["رقم_السرير"]);
-      else if (type === 'ذكر' || type === 'أنثى') filtered = filtered.filter(h => h["الجنس"] === type);
-      else if (type !== 'all') filtered = filtered.filter(h => h["رقم_الغرفة"] === type);
-      renderTable(filtered.filter(applySearchFilter));
-    }
+   async function filterData(type) {
+  if (hajjData.length === 0) {
+    const snapshot = await db.collection("بيانات الحجاج").get();
+    hajjData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderRoomButtons(); // نحدث أزرار الغرف فقط بعد تحميل البيانات
+  }
+
+  let filtered = [...hajjData];
+
+  if (type === 'noRoom') filtered = filtered.filter(h => !h["رقم_الغرفة"]);
+  else if (type === 'noBed') filtered = filtered.filter(h => !h["رقم_السرير"]);
+  else if (type === 'ذكر' || type === 'أنثى') filtered = filtered.filter(h => h["الجنس"] === type);
+  else if (type !== 'all') filtered = filtered.filter(h => h["رقم_الغرفة"] === type);
+
+  renderTable(filtered.filter(applySearchFilter));
+}
+
 
     function renderRoomButtons() {
       const container = document.getElementById('roomFilterButtons');
@@ -372,7 +381,6 @@ function openEdit(id) {
       );
     }
 
-    loadData();
   </script>
 </body>
 </html>
