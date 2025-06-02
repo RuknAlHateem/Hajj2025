@@ -25,165 +25,154 @@
       font-size: 18px;
       cursor: pointer;
     }
-    #card {
-      width: 856px;
-      height: 540px;
-      background: white;
-      border-radius: 20px;
-      position: relative;
-      overflow: hidden;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    .card-inner {
-      width: 100%;
-      height: 100%;
-      border: 4px solid #2d9958;
-      border-radius: 16px;
-      margin: 16px;
-      padding: 34px 44px;
-      box-sizing: border-box;
-      position: relative;
-    }
-    .bg-logo {
-      position: absolute;
-      inset: 0;
-      background-image: url('https://i.ibb.co/w5B72HP/image.png');
-      background-repeat: no-repeat;
-      background-position: center;
-      background-size: 75%;
-      z-index: 0;
-    }
-    .bg-shapes {
-      position: absolute;
-      inset: 0;
-      background-image: radial-gradient(circle, rgba(45, 153, 88, 0.02) 1px, transparent 1px), radial-gradient(circle, rgba(45, 153, 88, 0.02) 1px, transparent 1px);
-      background-size: 40px 40px;
-      background-position: 0 0, 20px 20px;
-      z-index: 0;
-    }
-    .brand {
-      position: absolute;
-      top: 25px;
-      right: 25px;
+    #cards-preview {
       display: flex;
-      align-items: center;
-      z-index: 2;
-    }
-    .logo {
-      width: 230px;
-      margin-left: 12px;
-    }
-    .brand-text {
-      display: flex;
-      flex-direction: column;
-      font-size: 35px;
-      color: #2d9958;
-      font-weight: bold;
-    }
-    .company-sub {
-      font-size: 14px;
-      font-weight: normal;
-      color: #444;
-      border-top: 1px solid #ccc;
-      padding-top: 2px;
-      margin-top: 2px;
-    }
-    .content {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-top: 120px;
-      position: relative;
-      z-index: 2;
-    }
-    .avatar {
-      width: 160px;
-      height: 160px;
-      border-radius: 50%;
-      background-image: url('https://cdn-icons-png.flaticon.com/512/149/149071.png');
-      background-size: cover;
-      background-position: center;
-      border: 4px solid #ccc;
-      margin-right: 40px;
-      margin-top: 60px;
-    }
-    .info {
-      flex: 1;
+      flex-wrap: wrap;
+      gap: 20px;
       margin-top: 30px;
     }
-    .field-box {
-      border: 2px solid #2d9958;
-      border-radius: 14px;
-      padding: 10px 18px;
-      margin-bottom: 18px;
-      background-color: #f9fdf9;
-      font-size: 28px;
+    .card-preview {
+      position: relative;
+      border: 1px solid #ccc;
+      padding: 10px;
+      background: #fff;
+    }
+
+.avatar-wrapper {
+  position: relative;
+  margin-right: 40px; /* حرك المربع لليسار */
+}
+
+
+    .avatar-controls {
+      margin-top: 10px;
       display: flex;
-      align-items: center;
-      gap: 20px;
+      gap: 5px;
+      flex-wrap: wrap;
     }
-    .label {
-      color: #2d9958;
-      min-width: 100px;
-      font-weight: bold;
-    }
-    #preview-wrapper {
-      position: absolute;
-      top: -9999px;
-      left: -9999px;
+    .avatar-controls button {
+      font-size: 14px;
+      padding: 4px 8px;
     }
   </style>
 </head>
 <body>
 
 <textarea id="input" placeholder="الاسم الكامل الهوية الجوال\nسطر لكل شخص..."></textarea>
-<button onclick="generatePDF()">توليد PDF</button>
+<br>
+<label>ارفع صور:</label>
+<input type="file" id="avatar-upload" accept="image/*" multiple>
+<br>
+<button onclick="renderCards()">عرض البطاقات</button>
+<button onclick="generatePDF()">تحميل كل البطاقات PDF</button>
 
-<div id="preview-wrapper">
-  <div class="card" id="card">
-    <div class="card-inner">
-      <div class="bg-logo"></div>
-      <div class="bg-shapes"></div>
-      <div class="brand">
-        <img src="https://i.ibb.co/j06C5bL/logo.png" class="logo" alt="logo">
-        <div class="brand-text">
+<div id="cards-preview"></div>
+
+<template id="card-template">
+  <div class="card" style="width: 856px; height: 540px; background: white; border-radius: 20px; position: relative; overflow: hidden; padding: 0; box-sizing: border-box;">
+    <div class="card-inner" style="width: 100%; height: 100%; border: 4px solid #2d9958; border-radius: 16px; margin: 16px; padding: 34px 44px; box-sizing: border-box; position: relative;">
+      <div class="bg-logo" style="position: absolute; inset: 0; background-image: url('https://i.ibb.co/w5B72HP/image.png'); background-repeat: no-repeat; background-position: center; background-size: 75%; z-index: 0;"></div>
+      <div class="bg-shapes" style="position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(45, 153, 88, 0.02) 1px, transparent 1px), radial-gradient(circle, rgba(45, 153, 88, 0.02) 1px, transparent 1px); background-size: 40px 40px; background-position: 0 0, 20px 20px; z-index: 0;"></div>
+      <div class="brand" style="position: absolute; top: 25px; right: 25px; display: flex; align-items: center; z-index: 2;">
+        <img src="https://i.ibb.co/j06C5bL/logo.png" class="logo" style="width: 230px; margin-left: 12px;">
+        <div class="brand-text" style="display: flex; flex-direction: column; font-size: 35px; color: #2d9958; font-weight: bold;">
           <div class="company-name">شركة ركن الحطيم للحج</div>
-          <div class="company-sub">تصريح رقم ١٠١٢٧</div>
+          <div class="company-sub" style="font-size: 14px; font-weight: normal; color: #444; border-top: 1px solid #ccc; padding-top: 2px; margin-top: 2px;">تصريح رقم ١٠١٢٧</div>
         </div>
       </div>
-      <div class="content">
-        <div class="info">
-          <div class="field-box" id="name-box"><span class="label">الاسم:</span> <span></span></div>
-          <div class="field-box" id="id-box"><span class="label">الهوية:</span> <span></span></div>
-          <div class="field-box" id="phone-box"><span class="label">الجوال:</span> <span></span></div>
+      <div class="content" style="display: flex; align-items: center; justify-content: space-between; margin-top: 120px; position: relative; z-index: 2;">
+        <div class="info" style="flex: 1; margin-top: 30px;">
+          <div class="field-box" style="border: 2px solid #2d9958; border-radius: 14px; padding: 10px 18px; margin-bottom: 18px; background-color: #f9fdf9; font-size: 28px; display: flex; align-items: center; gap: 20px;"><span class="label" style="color: #2d9958; min-width: 100px; font-weight: bold;">الاسم:</span> <span class="name"></span></div>
+          <div class="field-box" style="border: 2px solid #2d9958; border-radius: 14px; padding: 10px 18px; margin-bottom: 18px; background-color: #f9fdf9; font-size: 28px; display: flex; align-items: center; gap: 20px;"><span class="label" style="color: #2d9958; min-width: 100px; font-weight: bold;">الهوية:</span> <span class="id"></span></div>
+          <div class="field-box" style="border: 2px solid #2d9958; border-radius: 14px; padding: 10px 18px; margin-bottom: 18px; background-color: #f9fdf9; font-size: 28px; display: flex; align-items: center; gap: 20px;"><span class="label" style="color: #2d9958; min-width: 100px; font-weight: bold;">الجوال:</span> <span class="phone"></span></div>
         </div>
-        <div class="avatar"></div>
+        <div class="avatar-wrapper" style="width: 180px; height: 180px; border-radius: 16px; border: 4px solid #ccc; overflow: hidden; position: relative; margin-left: 40px;">
+          <img class="avatar" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: auto; height: 100%;" src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
+        </div>
       </div>
     </div>
   </div>
-</div>
+</template>
 
 <script>
-  async function generatePDF() {
-    const input = document.getElementById("input").value.trim().split("\n");
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: [85.6, 54] });
+  let uploadedImages = {};
+  document.getElementById("avatar-upload").addEventListener("change", function(event) {
+    [...event.target.files].forEach(file => {
+      uploadedImages[file.name.split('.')[0]] = URL.createObjectURL(file);
+    });
+  });
 
-    for (let i = 0; i < input.length; i++) {
-      const parts = input[i].trim().split(/\s+/);
-      if (parts.length < 3) continue;
+  function addAvatarControls(wrapper, avatar) {
+    const controls = document.createElement("div");
+    controls.className = "avatar-controls";
+    [
+      { label: "+", action: () => scale(avatar, 1.1) },
+      { label: "−", action: () => scale(avatar, 0.9) },
+      { label: "⬆", action: () => move(avatar, 0, -10) },
+      { label: "⬇", action: () => move(avatar, 0, 10) },
+      { label: "⬅", action: () => move(avatar, -10, 0) },
+      { label: "➡", action: () => move(avatar, 10, 0) },
+    ].forEach(btn => {
+      const b = document.createElement("button");
+      b.textContent = btn.label;
+      b.onclick = btn.action;
+      controls.appendChild(b);
+    });
+    wrapper.appendChild(controls);
+  }
+
+  function scale(img, factor) {
+    const width = img.width * factor;
+    img.style.width = width + 'px';
+    img.style.height = 'auto';
+  }
+
+  function move(img, dx, dy) {
+    const current = img.style.transform.match(/translate\(([-\d.]+)px, ([-\d.]+)px\)/);
+    let x = 0, y = 0;
+    if (current) {
+      x = parseFloat(current[1]);
+      y = parseFloat(current[2]);
+    }
+    img.style.transform = `translate(${x + dx}px, ${y + dy}px)`;
+  }
+
+  function renderCards() {
+    const lines = document.getElementById("input").value.trim().split("\n");
+    const container = document.getElementById("cards-preview");
+    container.innerHTML = "";
+    lines.forEach(line => {
+      const parts = line.trim().split(/\s+/);
+      if (parts.length < 3) return;
       const phone = parts.pop();
       const id = parts.pop();
       const name = parts.join(" ");
+      const template = document.getElementById("card-template");
+      const clone = template.content.cloneNode(true);
+      clone.querySelector(".name").textContent = name;
+      clone.querySelector(".id").textContent = id;
+      clone.querySelector(".phone").textContent = phone;
+      const avatar = clone.querySelector(".avatar");
+      if (uploadedImages[id]) avatar.src = uploadedImages[id];
+      const wrapper = document.createElement("div");
+      wrapper.className = "card-preview";
+      wrapper.appendChild(clone);
+      addAvatarControls(wrapper, avatar);
+      container.appendChild(wrapper);
+    });
+  }
 
-      document.querySelector('#name-box span:last-child').textContent = name;
-      document.querySelector('#id-box span:last-child').textContent = id;
-      document.querySelector('#phone-box span:last-child').textContent = phone;
+  async function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: [85.6, 54] });
+    const previews = document.querySelectorAll(".card-preview > .card");
 
-      await new Promise(resolve => setTimeout(resolve, 100)); // لضمان تحديث DOM
-      const card = document.getElementById("card");
+    for (let i = 0; i < previews.length; i++) {
+      const card = previews[i].cloneNode(true);
+      card.style.transform = "none";
+      document.body.appendChild(card);
       const canvas = await html2canvas(card, { scale: 4, useCORS: true });
+      document.body.removeChild(card);
       const imgData = canvas.toDataURL("image/png");
       if (i > 0) pdf.addPage();
       pdf.addImage(imgData, "PNG", 0, 0, 85.6, 54);
