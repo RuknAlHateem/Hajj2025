@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>توليد بطاقات PDF</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      direction: rtl;
+      font-family: 'Cairo', sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+    textarea {
+      width: 100%;
+      height: 200px;
+      font-size: 16px;
+      padding: 10px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    #card {
+      width: 856px;
+      height: 540px;
+      background: white;
+      border-radius: 20px;
+      position: relative;
+      overflow: hidden;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    .card-inner {
+      width: 100%;
+      height: 100%;
+      border: 4px solid #2d9958;
+      border-radius: 16px;
+      margin: 16px;
+      padding: 34px 44px;
+      box-sizing: border-box;
+      position: relative;
+    }
+    .bg-logo {
+      position: absolute;
+      inset: 0;
+      background-image: url('https://i.ibb.co/w5B72HP/image.png');
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 75%;
+      z-index: 0;
+    }
+    .bg-shapes {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(45, 153, 88, 0.02) 1px, transparent 1px), radial-gradient(circle, rgba(45, 153, 88, 0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
+      background-position: 0 0, 20px 20px;
+      z-index: 0;
+    }
+    .brand {
+      position: absolute;
+      top: 25px;
+      right: 25px;
+      display: flex;
+      align-items: center;
+      z-index: 2;
+    }
+    .logo {
+      width: 230px;
+      margin-left: 12px;
+    }
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      font-size: 35px;
+      color: #2d9958;
+      font-weight: bold;
+    }
+    .company-sub {
+      font-size: 14px;
+      font-weight: normal;
+      color: #444;
+      border-top: 1px solid #ccc;
+      padding-top: 2px;
+      margin-top: 2px;
+    }
+    .content {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-top: 120px;
+      position: relative;
+      z-index: 2;
+    }
+    .avatar {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background-image: url('https://cdn-icons-png.flaticon.com/512/149/149071.png');
+      background-size: cover;
+      background-position: center;
+      border: 4px solid #ccc;
+      margin-right: 40px;
+      margin-top: 60px;
+    }
+    .info {
+      flex: 1;
+      margin-top: 30px;
+    }
+    .field-box {
+      border: 2px solid #2d9958;
+      border-radius: 14px;
+      padding: 10px 18px;
+      margin-bottom: 18px;
+      background-color: #f9fdf9;
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .label {
+      color: #2d9958;
+      min-width: 100px;
+      font-weight: bold;
+    }
+    #preview-wrapper {
+      position: absolute;
+      top: -9999px;
+      left: -9999px;
+    }
+  </style>
+</head>
+<body>
+
+<textarea id="input" placeholder="الاسم الكامل الهوية الجوال\nسطر لكل شخص..."></textarea>
+<button onclick="generatePDF()">توليد PDF</button>
+
+<div id="preview-wrapper">
+  <div class="card" id="card">
+    <div class="card-inner">
+      <div class="bg-logo"></div>
+      <div class="bg-shapes"></div>
+      <div class="brand">
+        <img src="https://i.ibb.co/j06C5bL/logo.png" class="logo" alt="logo">
+        <div class="brand-text">
+          <div class="company-name">شركة ركن الحطيم للحج</div>
+          <div class="company-sub">تصريح رقم ١٠١٢٧</div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="info">
+          <div class="field-box" id="name-box"><span class="label">الاسم:</span> <span></span></div>
+          <div class="field-box" id="id-box"><span class="label">الهوية:</span> <span></span></div>
+          <div class="field-box" id="phone-box"><span class="label">الجوال:</span> <span></span></div>
+        </div>
+        <div class="avatar"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  async function generatePDF() {
+    const input = document.getElementById("input").value.trim().split("\n");
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: [85.6, 54] });
+
+    for (let i = 0; i < input.length; i++) {
+      const parts = input[i].trim().split(/\s+/);
+      if (parts.length < 3) continue;
+      const phone = parts.pop();
+      const id = parts.pop();
+      const name = parts.join(" ");
+
+      document.querySelector('#name-box span:last-child').textContent = name;
+      document.querySelector('#id-box span:last-child').textContent = id;
+      document.querySelector('#phone-box span:last-child').textContent = phone;
+
+      await new Promise(resolve => setTimeout(resolve, 100)); // لضمان تحديث DOM
+      const card = document.getElementById("card");
+      const canvas = await html2canvas(card, { scale: 4, useCORS: true });
+      const imgData = canvas.toDataURL("image/png");
+      if (i > 0) pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, 0, 85.6, 54);
+    }
+    pdf.save("بطاقات.pdf");
+  }
+</script>
+
+</body>
+</html>
