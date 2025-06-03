@@ -117,6 +117,19 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 
   <script>
+  
+    async function logLookup(id) {
+    try {
+      await db.collection("room_lookup_log").add({
+        idNumber: id,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (e) {
+      console.error("فشل تسجيل الاستعلام:", e);
+    }
+  }
+  
+  
     const firebaseConfig = {
       apiKey: "AIzaSyCjLt3g-2GPsMlxXPnzySXpCHl3-FyA80I",
     authDomain: "hajj2025-56177.firebaseapp.com",
@@ -157,6 +170,7 @@
     }
 
     const data = snapshot.docs[0].data();
+    await logLookup(id);
     const name = data["الاسم"] || "-";
     const room = data["رقم_الغرفة"] || "-";
 const bed = data["رقم_السرير"];
@@ -165,7 +179,7 @@ resultDiv.innerHTML = `
   <div class="card">
     <div><strong>الاسم:</strong> ${name}</div>
     <div><strong>رقم الهوية:</strong> ${id}</div>
-    <div><strong>رقم الغرفة:</strong> ${room}</div>
+    <div><strong>رقم الخيمة:</strong> ${room}</div>
     ${bed ? `<div><strong>رقم السرير:</strong> ${bed}</div>` : ''}
   </div>
 `;
