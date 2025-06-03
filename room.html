@@ -118,12 +118,11 @@
 
   <script>
   
-    async function logLookup(id) {
+      async function logLookup(id) {
     try {
-      await db.collection("room_lookup_log").add({
-        idNumber: id,
+      await db.collection("room_lookup_log").doc(id).set({
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      }, { merge: true });
     } catch (e) {
       console.error("فشل تسجيل الاستعلام:", e);
     }
