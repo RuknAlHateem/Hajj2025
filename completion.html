@@ -58,99 +58,93 @@
   <canvas id="chart-hydaya"></canvas>
 </div>
 
-<div class="count-info" id="count-info">
-  جاري تحميل البيانات...
-</div>
+<div class="count-info" id="count-info">جاري تحميل البيانات...</div>
 
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyCjLt3g-2GPsMlxXPnzySXpCHl3-FyA80I",
     authDomain: "hajj2025-56177.firebaseapp.com",
     projectId: "hajj2025-56177",
-    storageBucket: "hajj2025-56177.appspot.com",
-    messagingSenderId: "199404422758",
-    appId: "1:199404422758:web:35a17e6155f660e0128fa7"
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
+  const campaigns = ["حملة الخلف", "حملة الراية الخضراء", "حملة الهداية"];
+  const chartIds = { "حملة الخلف": "chart-khalaf", "حملة الراية الخضراء": "chart-rayah", "حملة الهداية": "chart-hydaya" };
+  const chartColors = { "حملة الخلف": "#2d9958", "حملة الراية الخضراء": "#fab334", "حملة الهداية": "#e8593a" };
+
+  async function getCounts() {
+    const answers = {};
+    const targets = {};
+
+    const evalSnap = await db.collection("evaluation").get();
+    evalSnap.forEach(doc => {
+      const campaign = doc.data().campaign;
+      if (campaigns.includes(campaign)) {
+        answers[campaign] = (answers[campaign] || 0) + 1;
+      }
+    });
+
+    const hajjSnap = await db.collection("بيانات الحجاج").get();
+    hajjSnap.forEach(doc => {
+      const campaign = doc.data().campaign;
+      if (campaigns.includes(campaign)) {
+        targets[campaign] = (targets[campaign] || 0) + 1;
+      }
+    });
+
+    return { answers, targets };
+  }
+
   async function drawCharts() {
-    const countData = {
-      "حملة الخلف": { total: 0, answered: 0 },
-      "حملة الراية الخضراء": { total: 0, answered: 0 },
-      "حملة الهداية": { total: 0, answered: 0 }
-    };
+    const { answers, targets } = await getCounts();
 
-    // حساب عدد الحجاج من كل حملة
-    const pilgrims = await db.collection("بيانات الحجاج").get();
-    pilgrims.forEach(doc => {
-      const c = doc.data().campaign;
-      if (countData[c]) countData[c].total++;
-    });
-
-    // حساب عدد المجيبين من كل حملة
-    const evaluations = await db.collection("evaluation").get();
-    evaluations.forEach(doc => {
-      const c = doc.data().campaign;
-      if (countData[c]) countData[c].answered++;
-    });
-
-    // عرض النسب
-    Object.keys(countData).forEach(name => {
-      const total = countData[name].total || 1;
-      const answered = countData[name].answered || 0;
+    campaigns.forEach(campaign => {
+      const answered = answers[campaign] || 0;
+      const total = targets[campaign] || 1;
       const percent = Math.round((answered / total) * 100);
-      const ctx = document.getElementById("chart-" + getKey(name)).getContext("2d");
+      const canvasId = chartIds[campaign];
+      const color = chartColors[campaign];
+
+      const ctx = document.getElementById(canvasId);
+      if (!ctx) return;
 
       new Chart(ctx, {
         type: 'doughnut',
         data: {
           datasets: [{
             data: [percent, 100 - percent],
-            backgroundColor: [getColor(name), '#eee'],
+            backgroundColor: [color, '#eee'],
             borderWidth: 0
           }]
         },
         options: {
+          cutout: '70%',
           plugins: {
-            tooltip: { enabled: false },
             legend: { display: false },
+            tooltip: { enabled: false },
             datalabels: {
               display: true,
-              formatter: () => percent + '%',
               color: '#333',
-              font: {
-                weight: 'bold',
-                size: 16
+              font: { weight: 'bold', size: 16 },
+              formatter: (value, context) => {
+                return context.dataIndex === 0 ? percent + "%" : "";
               }
             }
-          },
-          cutout: '70%'
+          }
         },
         plugins: [ChartDataLabels]
       });
     });
 
     // عرض عدد المجيبين أسفل الرسومات
-    const countBox = document.getElementById("count-info");
-    countBox.innerHTML = `
+    const info = document.getElementById("count-info");
+    info.innerHTML = `
       عدد المجيبين:<br>
-      الخلف: ${countData["حملة الخلف"].answered} من ${countData["حملة الخلف"].total}<br>
-      الراية الخضراء: ${countData["حملة الراية الخضراء"].answered} من ${countData["حملة الراية الخضراء"].total}<br>
-      الهداية: ${countData["حملة الهداية"].answered} من ${countData["حملة الهداية"].total}
+      الخلف: ${answers["حملة الخلف"] || 0} من ${targets["حملة الخلف"] || 0}<br>
+      الراية الخضراء: ${answers["حملة الراية الخضراء"] || 0} من ${targets["حملة الراية الخضراء"] || 0}<br>
+      الهداية: ${answers["حملة الهداية"] || 0} من ${targets["حملة الهداية"] || 0}
     `;
-  }
-
-  function getKey(name) {
-    return name === "حملة الخلف" ? "khalaf"
-         : name === "حملة الراية الخضراء" ? "rayah"
-         : "hydaya";
-  }
-
-  function getColor(name) {
-    return name === "حملة الخلف" ? "#2d9958"
-         : name === "حملة الراية الخضراء" ? "#fab334"
-         : "#e8593a";
   }
 
   drawCharts();
