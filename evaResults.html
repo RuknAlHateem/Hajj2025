@@ -16,7 +16,6 @@
       margin: 0;
       background: #f9f9f9;
     }
-
     header {
       background: #2d9958;
       color: white;
@@ -24,19 +23,16 @@
       text-align: center;
       position: relative;
     }
-
     header img {
       position: absolute;
       top: 15px;
       left: 15px;
       height: 50px;
     }
-
     h1 {
       margin: 0;
       font-size: 22px;
     }
-
     .filters {
       background: white;
       padding: 15px;
@@ -46,14 +42,12 @@
       gap: 10px;
       border-bottom: 2px solid #e0e0e0;
     }
-
     .filter-group {
       display: flex;
       gap: 5px;
       align-items: center;
       flex-wrap: wrap;
     }
-
     .filter-btn {
       padding: 6px 15px;
       border: 1px solid #2d9958;
@@ -62,16 +56,13 @@
       color: #2d9958;
       cursor: pointer;
     }
-
     .filter-btn.active {
       background: #2d9958;
       color: white;
     }
-
     .charts-container, .results-container {
       padding: 20px;
     }
-
     .card {
       background: white;
       padding: 20px;
@@ -79,25 +70,21 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       margin-bottom: 20px;
     }
-
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 10px;
       background: white;
     }
-
     th, td {
       padding: 10px;
       text-align: center;
       border: 1px solid #ccc;
     }
-
     th {
       background-color: #2d9958;
       color: white;
     }
-
     @media (max-width: 600px) {
       header h1 { font-size: 18px; }
       .filter-btn { padding: 5px 10px; font-size: 13px; }
@@ -117,6 +104,11 @@
     <button class="filter-btn" data-group="campaign" data-value="حملة الخلف">الخلف</button>
     <button class="filter-btn" data-group="campaign" data-value="الراية الخضراء">الراية الخضراء</button>
     <button class="filter-btn" data-group="campaign" data-value="الهداية">الهداية</button>
+  </div>
+  <div class="filter-group">
+    <strong>الجنس:</strong>
+    <button class="filter-btn" data-group="gender" data-value="ذكر">ذكر</button>
+    <button class="filter-btn" data-group="gender" data-value="أنثى">أنثى</button>
   </div>
 </div>
 
@@ -143,7 +135,10 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  const selectedFilters = { campaign: new Set() };
+  const selectedFilters = {
+    campaign: new Set(),
+    gender: new Set()
+  };
 
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -165,7 +160,9 @@
 
     snapshot.forEach(doc => {
       const entry = doc.data();
-      if (selectedFilters.campaign.size === 0 || selectedFilters.campaign.has(entry.campaign)) {
+      const campaignMatch = selectedFilters.campaign.size === 0 || selectedFilters.campaign.has(entry.campaign);
+      const genderMatch = selectedFilters.gender.size === 0 || selectedFilters.gender.has(entry.gender);
+      if (campaignMatch && genderMatch) {
         data.push(entry);
       }
     });
