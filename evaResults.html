@@ -27,13 +27,22 @@
       margin-bottom: 20px;
     }
     .filter-group {
-      background: #fff;
-      border-radius: 10px;
-      padding: 10px 15px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
     }
-    .filter-group label {
-      margin-left: 10px;
+    .filter-btn {
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid #2d9958;
+      background-color: white;
+      color: #2d9958;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .filter-btn.active {
+      background-color: #2d9958;
+      color: white;
     }
     .section {
       background: white;
@@ -49,6 +58,18 @@
     .percentage {
       font-weight: bold;
       color: #1b6e3c;
+      font-size: 18px;
+    }
+    .progress-bar {
+      height: 8px;
+      border-radius: 5px;
+      background: #eee;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #2d9958;
     }
     ul { padding-right: 20px; }
     li { margin-bottom: 5px; }
@@ -59,16 +80,14 @@
   <h2>تحليل نتائج استبيان الحج</h2>
 
   <div class="filters">
-    <div class="filter-group">
-      <strong>اختر الحملات:</strong><br>
-      <label><input type="checkbox" class="campaign-filter" value="حملة الخلف" checked> الخلف</label>
-      <label><input type="checkbox" class="campaign-filter" value="حملة الراية الخضراء" checked> الراية</label>
-      <label><input type="checkbox" class="campaign-filter" value="حملة الهداية" checked> الهداية</label>
+    <div class="filter-group" id="campaign-filters">
+      <button class="filter-btn active" data-value="حملة الخلف">الخلف</button>
+      <button class="filter-btn active" data-value="حملة الراية الخضراء">الراية</button>
+      <button class="filter-btn active" data-value="حملة الهداية">الهداية</button>
     </div>
-    <div class="filter-group">
-      <strong>اختر الجنس:</strong><br>
-      <label><input type="checkbox" class="gender-filter" value="ذكر" checked> ذكر</label>
-      <label><input type="checkbox" class="gender-filter" value="أنثى" checked> أنثى</label>
+    <div class="filter-group" id="gender-filters">
+      <button class="filter-btn active" data-value="ذكر">ذكر</button>
+      <button class="filter-btn active" data-value="أنثى">أنثى</button>
     </div>
   </div>
 
@@ -89,10 +108,30 @@
 
     const ratingValues = { 'ممتاز': 100, 'جيد': 75, 'مقبول': 50, 'ضعيف': 25 };
 
+    let campaignFilters = ["حملة الخلف", "حملة الراية الخضراء", "حملة الهداية"];
+    let genderFilters = ["ذكر", "أنثى"];
+
+    function toggleFilter(btn, list) {
+      const value = btn.dataset.value;
+      if (list.includes(value)) {
+        list.splice(list.indexOf(value), 1);
+        btn.classList.remove("active");
+      } else {
+        list.push(value);
+        btn.classList.add("active");
+      }
+      loadData();
+    }
+
+    document.querySelectorAll("#campaign-filters .filter-btn").forEach(btn => {
+      btn.addEventListener("click", () => toggleFilter(btn, campaignFilters));
+    });
+    document.querySelectorAll("#gender-filters .filter-btn").forEach(btn => {
+      btn.addEventListener("click", () => toggleFilter(btn, genderFilters));
+    });
+
     async function loadData() {
       const snapshot = await db.collection("evaluation").get();
-      const campaignFilters = Array.from(document.querySelectorAll(".campaign-filter:checked")).map(i => i.value);
-      const genderFilters = Array.from(document.querySelectorAll(".gender-filter:checked")).map(i => i.value);
       const docs = snapshot.docs.map(doc => doc.data()).filter(doc => campaignFilters.includes(doc.campaign) && genderFilters.includes(doc.gender));
 
       const sections = ['food', 'transport', 'logistics', 'mina', 'arafat'];
@@ -130,11 +169,11 @@
 
       sections.forEach(sec => {
         const avg = sectionResults[sec].length ? (sectionResults[sec].reduce((a,b) => a + b, 0) / sectionResults[sec].length).toFixed(2) : '0';
-        html += `<div class="section"><h3>${sectionLabels[sec]}</h3><p>نسبة الرضا: <span class="percentage">${avg}%</span></p></div>`;
+        html += `<div class="section"><h3>${sectionLabels[sec]}</h3><p>نسبة الرضا: <span class="percentage">${avg}%</span></p><div class="progress-bar"><div class="progress-fill" style="width:${avg}%"></div></div></div>`;
       });
 
       const q32Avg = q32Answers.length ? (q32Answers.reduce((a,b) => a + b, 0) / q32Answers.length).toFixed(2) : '0';
-      html += `<div class="section"><h3>السؤال الأخير (q32)</h3><p>نسبة الرضا: <span class="percentage">${q32Avg}%</span></p></div>`;
+      html += `<div class="section"><h3>السؤال الأخير (q32)</h3><p>نسبة الرضا: <span class="percentage">${q32Avg}%</span></p><div class="progress-bar"><div class="progress-fill" style="width:${q32Avg}%"></div></div></div>`;
 
       ['positive', 'negative', 'suggestions'].forEach(type => {
         const label = type === 'positive' ? 'الإيجابيات' : type === 'negative' ? 'السلبيات' : 'المقترحات';
@@ -145,10 +184,6 @@
 
       document.getElementById('results').innerHTML = html;
     }
-
-    document.querySelectorAll(".campaign-filter, .gender-filter").forEach(input => {
-      input.addEventListener("change", loadData);
-    });
 
     loadData();
   </script>
