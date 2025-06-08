@@ -3,175 +3,179 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>عرض الإجابات</title>
+  <title>عرض استجابة التقييم</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Cairo', sans-serif;
-      padding: 0;
-      margin: 0;
       background: #f9f9f9;
-      max-width: 600px;
-      margin: auto;
+      margin: 0;
+      padding-top: 80px;
+      color: #333;
     }
-    header {
-      position: sticky;
+    .header {
+      position: fixed;
       top: 0;
+      right: 0;
+      left: 0;
       background: #2d9958;
       color: white;
-      padding: 10px;
+      padding: 15px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      z-index: 10;
     }
-    h2 { margin: 10px 0; font-size: 18px; }
-    .question-card {
+    .header h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+    .nav-btns button {
       background: white;
-      margin: 10px;
-      border-radius: 8px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-      padding: 12px;
-    }
-    .section-title {
-      background: #2d9958;
-      color: white;
-      padding: 10px;
+      border: none;
+      color: #2d9958;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin: 0 5px;
       font-weight: bold;
-      font-size: 16px;
-      border-radius: 8px;
-      margin: 15px 10px 5px;
     }
-    .notes {
-      background: #fff;
+    .container {
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+    }
+    .section {
+      margin-bottom: 30px;
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 5px #ccc;
+    }
+    .section h3 {
+      margin-top: 0;
+      color: #2d9958;
+      font-size: 18px;
+    }
+    .question {
+      margin-bottom: 10px;
+    }
+    .question span {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .answer {
+      padding: 8px;
+      background: #f1f1f1;
+      border-radius: 6px;
+    }
+    .note-type {
+      margin-top: 20px;
       padding: 10px;
-      margin: 10px;
-      border: 1px solid #ccc;
+      background: #fffbea;
+      border: 1px solid #ffe58f;
       border-radius: 8px;
+    }
+    .note-type.negative {
+      background: #fff1f0;
+      border-color: #ffa39e;
+    }
+    .note-type.positive {
+      background: #f6ffed;
+      border-color: #b7eb8f;
     }
   </style>
 </head>
 <body>
-
-  <header>
-    <button id="prevBtn">⬅️ السابق</button>
-    <h2 id="docTitle">الإجابة</h2>
-    <button id="nextBtn">التالي ➡️</button>
-  </header>
-
-  <div id="answers"></div>
+  <div class="header">
+    <div class="nav-btns">
+      <button onclick="prevEntry()">السابق</button>
+      <button onclick="nextEntry()">التالي</button>
+    </div>
+    <h2 id="docId">--</h2>
+  </div>
+  <div class="container" id="responseContainer"></div>
 
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyCjLt3g-2GPsMlxXPnzySXpCHl3-FyA80I",
       authDomain: "hajj2025-56177.firebaseapp.com",
-      projectId: "hajj2025-56177",
-      storageBucket: "hajj2025-56177.appspot.com",
-      messagingSenderId: "199404422758",
-      appId: "1:199404422758:web:35a17e6155f660e0128fa7"
+      projectId: "hajj2025-56177"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    let docs = [], index = 0;
+    let docs = [];
+    let currentIndex = 0;
 
-    const sections = {
-      "بيانات الحاج": ["name", "mobile", "gender", "campaign"],
-      "التغذية": ["food.q1", "food.q2", "food.q3", "food.q4", "food.q5", "food.q6", "food.q7", "food.q8", "food.q9"],
-      "النقل": ["transport.q10", "transport.q11", "transport.q12", "transport.q13"],
-      "الخدمات اللوجستية": ["logistics.q14", "logistics.q15", "logistics.q16", "logistics.q17"],
-      "منى": ["mina.q18", "mina.q19", "mina.q20", "mina.q21", "mina.q22", "mina.q23", "mina.q24", "mina.q25"],
-      "عرفة": ["arafat.q26", "arafat.q27", "arafat.q28", "arafat.q29", "arafat.q30", "arafat.q31", "arafat.q32"]
-    };
-
-    const questions = {
-      "food.q1": "تقييم جودة الوجبات المقدمة",
-      "food.q2": "تنوع الوجبات المقدمة",
-      "food.q3": "كمية الطعام المقدمة",
-      "food.q4": "نظافة أدوات الطعام",
-      "food.q5": "الالتزام بمواعيد تقديم الوجبات",
-      "food.q6": "التعامل الحسن من العاملين في التغذية",
-      "food.q7": "الاهتمام باحتياجات كبار السن وذوي الاحتياجات الخاصة",
-      "food.q8": "مدى رضاك عن التغذية بشكل عام",
-      "food.q9": "اقتراحك لتحسين التغذية",
-      "transport.q10": "راحة وسائل النقل المستخدمة",
-      "transport.q11": "التزام السائقين بالمواعيد",
-      "transport.q12": "مساعدة المتطوعين في النقل",
-      "transport.q13": "مدى رضاك عن النقل بشكل عام",
-      "logistics.q14": "سهولة الوصول إلى المستلزمات الأساسية",
-      "logistics.q15": "توفر الكمامات والمعقمات",
-      "logistics.q16": "سرعة الاستجابة للطلبات",
-      "logistics.q17": "مدى رضاك عن الخدمات اللوجستية",
-      "mina.q18": "نظافة مخيم منى",
-      "mina.q19": "توفر دورات المياه ونظافتها",
-      "mina.q20": "راحة أماكن النوم",
-      "mina.q21": "تهوية وتبريد المخيم",
-      "mina.q22": "أمان المخيم والتنظيم",
-      "mina.q23": "الهدوء والانضباط",
-      "mina.q24": "الخصوصية داخل المخيم",
-      "mina.q25": "مدى رضاك عن مخيم منى",
-      "arafat.q26": "نظافة مخيم عرفة",
-      "arafat.q27": "توفر دورات المياه ونظافتها",
-      "arafat.q28": "راحة أماكن النوم",
-      "arafat.q29": "تهوية وتبريد المخيم",
-      "arafat.q30": "أمان المخيم والتنظيم",
-      "arafat.q31": "أوقات التفويج والتنقل",
-      "arafat.q32": "مدى رضاك عن مخيم عرفة"
-    };
-
-    async function loadDocs() {
-      const snap = await db.collection("evaluation").get();
-      docs = snap.docs;
-      show(index);
-    }
-
-    function show(i) {
-      const data = docs[i].data();
-      document.getElementById("docTitle").textContent = docs[i].id;
-      const container = document.getElementById("answers");
-      container.innerHTML = "";
-
-      for (const [section, keys] of Object.entries(sections)) {
-        const sec = document.createElement("div");
-        sec.className = "section-title";
-        sec.textContent = section;
-        container.appendChild(sec);
-
-        keys.forEach(fullKey => {
-          const [main, sub] = fullKey.split(".");
-          const value = sub ? (data[main]?.[sub] ?? "-") : (data[main] ?? "-");
-          const q = questions[fullKey] || fullKey;
-          const card = document.createElement("div");
-          card.className = "question-card";
-          card.innerHTML = `<strong>${q}:</strong> ${value}`;
-          container.appendChild(card);
-        });
+    async function fetchDocs() {
+      const snapshot = await db.collection("evaluation").get();
+      docs = snapshot.docs;
+      if (docs.length > 0) {
+        showEntry(0);
       }
-
-      const notes = data.notes || {};
-      const notesDiv = document.createElement("div");
-      notesDiv.className = "notes";
-      notesDiv.innerHTML = `
-        <h3>الملاحظات</h3>
-        <p><strong>إيجابي:</strong> ${notes.positive || "-"}</p>
-        <p><strong>سلبي:</strong> ${notes.negative || "-"}</p>
-        <p><strong>مقترحات:</strong> ${notes.suggestions || "-"}</p>
-      `;
-      container.appendChild(notesDiv);
     }
 
-    document.getElementById("prevBtn").onclick = () => {
-      if (index > 0) index--;
-      show(index);
-    };
+    function showEntry(index) {
+      const doc = docs[index];
+      const data = doc.data();
+      document.getElementById("docId").innerText = doc.id;
+      const container = document.getElementById("responseContainer");
+      container.innerHTML = '';
 
-    document.getElementById("nextBtn").onclick = () => {
-      if (index < docs.length - 1) index++;
-      show(index);
-    };
+      const order = ['food', 'transport', 'logistics', 'mina', 'arafat'];
+      const labels = {
+        food: "التغذية",
+        transport: "النقل",
+        logistics: "الخدمات اللوجستية",
+        mina: "مخيم منى",
+        arafat: "مخيم عرفة"
+      };
 
-    loadDocs();
+      order.forEach(section => {
+        if (!data[section]) return;
+        const secDiv = document.createElement("div");
+        secDiv.className = "section";
+        secDiv.innerHTML = `<h3>${labels[section]}</h3>`;
+        Object.keys(data[section]).forEach(q => {
+          const qDiv = document.createElement("div");
+          qDiv.className = "question";
+          qDiv.innerHTML = `<span>${q}</span><div class="answer">${data[section][q]}</div>`;
+          secDiv.appendChild(qDiv);
+        });
+        container.appendChild(secDiv);
+      });
+
+      // Notes
+      const notes = data.notes || {};
+      for (const key in notes) {
+        if (notes[key]) {
+          const noteDiv = document.createElement("div");
+          noteDiv.className = `note-type ${key}`;
+          noteDiv.innerHTML = `<strong>${key === 'positive' ? 'إيجابي' : key === 'negative' ? 'سلبي' : 'مقترح'}:</strong> ${notes[key]}`;
+          container.appendChild(noteDiv);
+        }
+      }
+    }
+
+    function prevEntry() {
+      if (currentIndex > 0) {
+        currentIndex--;
+        showEntry(currentIndex);
+      }
+    }
+
+    function nextEntry() {
+      if (currentIndex < docs.length - 1) {
+        currentIndex++;
+        showEntry(currentIndex);
+      }
+    }
+
+    fetchDocs();
   </script>
 </body>
 </html>
