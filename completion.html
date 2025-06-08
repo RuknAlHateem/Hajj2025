@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>نسبة إنجاز الاستبيان لكل حملة</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -11,34 +11,33 @@
   <style>
     body {
       font-family: 'Cairo', sans-serif;
-      font-size: 14px;
-      max-width: 420px;
-      padding: 20px;
       background: #f9f9f9;
       text-align: center;
-      direction: rtl;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h2 {
+      margin-bottom: 30px;
     }
     .chart-container {
-      margin-bottom: 30px;
       background: white;
-      border-radius: 12px;
       padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
       box-shadow: 0 1px 5px #ccc;
     }
     canvas {
-      max-width: 200px;
+      max-width: 180px;
       margin: auto;
     }
-    h3 {
-      margin: 10px 0;
-      font-size: 16px;
-    }
-    .summary-card {
+    .count-info {
       background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 1px 5px #ccc;
-      padding: 20px;
-      margin-top: 30px;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px #ccc;
+      font-size: 15px;
+      line-height: 1.8;
     }
   </style>
 </head>
@@ -50,18 +49,18 @@
   <h3>حملة الخلف</h3>
   <canvas id="chart-khalaf"></canvas>
 </div>
-
 <div class="chart-container">
   <h3>حملة الراية الخضراء</h3>
   <canvas id="chart-rayah"></canvas>
 </div>
-
 <div class="chart-container">
   <h3>حملة الهداية</h3>
   <canvas id="chart-hydaya"></canvas>
 </div>
 
-<div class="summary-card" id="summary"></div>
+<div class="count-info" id="count-info">
+  جاري تحميل البيانات...
+</div>
 
 <script>
   const firebaseConfig = {
@@ -72,69 +71,43 @@
     messagingSenderId: "199404422758",
     appId: "1:199404422758:web:35a17e6155f660e0128fa7"
   };
-
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  const campaigns = ["حملة الخلف", "حملة الراية الخضراء", "حملة الهداية"];
-  const colors = {
-    "حملة الخلف": "#2d9958",
-    "حملة الراية الخضراء": "#fab334",
-    "حملة الهداية": "#e8593a"
-  };
-  const keys = {
-    "حملة الخلف": "khalaf",
-    "حملة الراية الخضراء": "rayah",
-    "حملة الهداية": "hydaya"
-  };
-
   async function drawCharts() {
-    const responsesSnapshot = await db.collection("evaluation").get();
-    const targetsSnapshot = await db.collection("بيانات الحجاج").get();
+    const countData = {
+      "حملة الخلف": { total: 0, answered: 0 },
+      "حملة الراية الخضراء": { total: 0, answered: 0 },
+      "حملة الهداية": { total: 0, answered: 0 }
+    };
 
-    const counts = {};
-    const targets = {};
-
-    campaigns.forEach(name => {
-      counts[name] = 0;
-      targets[name] = 0;
-    });
-
-    responsesSnapshot.forEach(doc => {
+    // حساب عدد الحجاج من كل حملة
+    const pilgrims = await db.collection("بيانات الحجاج").get();
+    pilgrims.forEach(doc => {
       const c = doc.data().campaign;
-      if (counts[c] !== undefined) counts[c]++;
+      if (countData[c]) countData[c].total++;
     });
 
-    targetsSnapshot.forEach(doc => {
+    // حساب عدد المجيبين من كل حملة
+    const evaluations = await db.collection("evaluation").get();
+    evaluations.forEach(doc => {
       const c = doc.data().campaign;
-      if (targets[c] !== undefined) targets[c]++;
+      if (countData[c]) countData[c].answered++;
     });
 
-    // Summary text
-    let summaryHTML = "<h3>عدد المجيبين:</h3><ul style='text-align:right;padding-right:20px'>";
-    campaigns.forEach(campaign => {
-      const count = counts[campaign];
-      summaryHTML += `<li>${campaign}: ${count} مشارك</li>`;
-    });
-    summaryHTML += "</ul>";
-    document.getElementById("summary").innerHTML = summaryHTML;
+    // عرض النسب
+    Object.keys(countData).forEach(name => {
+      const total = countData[name].total || 1;
+      const answered = countData[name].answered || 0;
+      const percent = Math.round((answered / total) * 100);
+      const ctx = document.getElementById("chart-" + getKey(name)).getContext("2d");
 
-    // Draw charts
-    campaigns.forEach(campaign => {
-      const count = counts[campaign];
-      const total = targets[campaign];
-      const percent = total > 0 ? Math.round((count / total) * 100) : 0;
-      const canvasId = "chart-" + keys[campaign];
-      const canvas = document.getElementById(canvasId);
-      if (!canvas) return;
-
-      const ctx = canvas.getContext("2d");
       new Chart(ctx, {
         type: 'doughnut',
         data: {
           datasets: [{
             data: [percent, 100 - percent],
-            backgroundColor: [colors[campaign], '#eee'],
+            backgroundColor: [getColor(name), '#eee'],
             borderWidth: 0
           }]
         },
@@ -144,8 +117,8 @@
             legend: { display: false },
             datalabels: {
               display: true,
-              color: '#333',
               formatter: () => percent + '%',
+              color: '#333',
               font: {
                 weight: 'bold',
                 size: 16
@@ -157,6 +130,27 @@
         plugins: [ChartDataLabels]
       });
     });
+
+    // عرض عدد المجيبين أسفل الرسومات
+    const countBox = document.getElementById("count-info");
+    countBox.innerHTML = `
+      عدد المجيبين:<br>
+      الخلف: ${countData["حملة الخلف"].answered} من ${countData["حملة الخلف"].total}<br>
+      الراية الخضراء: ${countData["حملة الراية الخضراء"].answered} من ${countData["حملة الراية الخضراء"].total}<br>
+      الهداية: ${countData["حملة الهداية"].answered} من ${countData["حملة الهداية"].total}
+    `;
+  }
+
+  function getKey(name) {
+    return name === "حملة الخلف" ? "khalaf"
+         : name === "حملة الراية الخضراء" ? "rayah"
+         : "hydaya";
+  }
+
+  function getColor(name) {
+    return name === "حملة الخلف" ? "#2d9958"
+         : name === "حملة الراية الخضراء" ? "#fab334"
+         : "#e8593a";
   }
 
   drawCharts();
