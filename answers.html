@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>عرض إجابات الاستبيان</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      padding: 20px;
+      max-width: 500px;
+      margin: auto;
+      background: #f9f9f9;
+      background-image: url('logo.png');
+      background-repeat: no-repeat;
+      background-position: top 20px center;
+      background-size: 80px;
+      padding-top: 100px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      background: #2d9958;
+      padding: 10px;
+      border-radius: 10px;
+      color: white;
+    }
+    .arrow {
+      font-size: 20px;
+      cursor: pointer;
+      padding: 10px;
+      background: #fab334;
+      color: white;
+      border-radius: 6px;
+    }
+    .answer-box {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 1px 5px #ccc;
+      padding: 15px;
+      margin-bottom: 10px;
+    }
+    h2 {
+      font-size: 18px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .field {
+      margin-bottom: 10px;
+    }
+    .field label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 5px;
+    }
+    .value {
+      background: #eee;
+      padding: 8px 12px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="arrow" onclick="prevDoc()">⟨</div>
+  <h2 id="docName">--</h2>
+  <div class="arrow" onclick="nextDoc()">⟩</div>
+</div>
+
+<div id="answers"></div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCjLt3g-2GPsMlxXPnzySXpCHl3-FyA80I",
+    authDomain: "hajj2025-56177.firebaseapp.com",
+    projectId: "hajj2025-56177",
+    storageBucket: "hajj2025-56177.appspot.com",
+    messagingSenderId: "199404422758",
+    appId: "1:199404422758:web:35a17e6155f660e0128fa7"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  let docs = [], current = 0;
+
+  function loadDocs() {
+    db.collection("evaluation").get().then(snapshot => {
+      docs = snapshot.docs;
+      showDoc(0);
+    });
+  }
+
+  function showDoc(index) {
+    if (index < 0 || index >= docs.length) return;
+    current = index;
+    const data = docs[index].data();
+    document.getElementById("docName").textContent = docs[index].id;
+
+    const container = document.getElementById("answers");
+    container.innerHTML = "";
+
+    for (const section in data) {
+      if (typeof data[section] === 'object' && data[section] !== null && section !== 'notes') {
+        const secData = data[section];
+        for (const key in secData) {
+          const box = document.createElement('div');
+          box.className = 'answer-box';
+          box.innerHTML = `
+            <div class="field">
+              <label>${section} - ${key}</label>
+              <div class="value">${secData[key]}</div>
+            </div>
+          `;
+          container.appendChild(box);
+        }
+      }
+    }
+
+    if (data.notes) {
+      for (const type in data.notes) {
+        const box = document.createElement('div');
+        box.className = 'answer-box';
+        box.innerHTML = `
+          <div class="field">
+            <label>ملاحظة (${type})</label>
+            <div class="value">${data.notes[type]}</div>
+          </div>
+        `;
+        container.appendChild(box);
+      }
+    }
+  }
+
+  function nextDoc() { if (current + 1 < docs.length) showDoc(current + 1); }
+  function prevDoc() { if (current - 1 >= 0) showDoc(current - 1); }
+
+  loadDocs();
+</script>
+
+</body>
+</html>
