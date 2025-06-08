@@ -2,92 +2,108 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>تحليل إجابات الاستبيان</title>
+  <title>تحليل إجابات الاستبيان - ركن الحطيم</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <style>
-    body { font-family: 'Cairo', sans-serif; background: #f9f9f9; padding: 20px; max-width: 600px; margin: auto; }
-    h2 { text-align: center; color: #333; }
-    .filters { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 10px 0 20px; }
-    .filters label { background: white; padding: 8px 14px; border-radius: 8px; box-shadow: 0 1px 3px #ccc; cursor: pointer; }
-    .filters input { margin-left: 5px; }
-    .card { background: white; padding: 15px; margin-bottom: 20px; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-    .card h3 { margin-top: 0; font-size: 16px; }
-    ul { padding: 0 20px; list-style: disc; }
+    body { font-family: 'Cairo', sans-serif; background: #f5f5f5; padding: 20px; max-width: 900px; margin: auto; }
+    h2,h3 { text-align: center; color: #444; }
+    .filters { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px; }
+    .filters label { background: #fff; padding: 8px 14px; border-radius: 8px; box-shadow: 0 1px 3px #ccc; }
+    .card { background: #fff; margin-bottom: 20px; border-radius: 10px; padding: 15px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    .card h4 { margin: 10px 0; }
+    .notes { display: flex; gap: 10px; flex-wrap: wrap; }
+    .note-col { flex: 1; min-width: 250px; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px #ddd; }
+    .note-col h4 { margin-top: 0; }
+    ul { padding-inline-start: 20px; }
   </style>
 </head>
 <body>
 
 <h2>تحليل إجابات الاستبيان</h2>
 
-<div class="filters" id="campaigns">
-  <label><input type="checkbox" value="حملة الخلف" checked> حملة الخلف</label>
-  <label><input type="checkbox" value="حملة الراية الخضراء" checked> الراية الخضراء</label>
-  <label><input type="checkbox" value="حملة الهداية" checked> الهداية</label>
+<div class="filters">
+  <fieldset><legend>الحملة:</legend>
+    <label><input type="checkbox" value="حملة الخلف" checked> الخلف</label>
+    <label><input type="checkbox" value="حملة الراية الخضراء" checked> الراية الخضراء</label>
+    <label><input type="checkbox" value="حملة الهداية" checked> الهداية</label>
+  </fieldset>
+  <fieldset><legend>الجنس:</legend>
+    <label><input type="checkbox" value="ذكر" checked> ذكر</label>
+    <label><input type="checkbox" value="أنثى" checked> أنثى</label>
+  </fieldset>
 </div>
 
-<div class="filters" id="genders">
-  <label><input type="checkbox" value="ذكر" checked> ذكر</label>
-  <label><input type="checkbox" value="أنثى" checked> أنثى</label>
-</div>
+<div id="analytics"></div>
 
-<div class="card" id="logistics-weak"></div>
-<div class="card">
-  <h3>الملاحظات المفتوحة</h3>
-  <ul id="notes-list"></ul>
+<div class="card notes">
+  <div class="note-col"><h4>إيجابي</h4><ul id="notes-positive"></ul></div>
+  <div class="note-col"><h4>سلبي</h4><ul id="notes-negative"></ul></div>
+  <div class="note-col"><h4>مقترح</h4><ul id="notes-suggestions"></ul></div>
 </div>
 
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyCjLt3g-2GPsMlxXPnzySXpCHl3-FyA80I",
-    authDomain: "hajj2025-56177.firebaseapp.com",
-    projectId: "hajj2025-56177",
-    storageBucket: "hajj2025-56177.appspot.com",
-    messagingSenderId: "199404422758",
-    appId: "1:199404422758:web:35a17e6155f660e0128fa7"
-  };
-  firebase.initializeApp(firebaseConfig);
+  // إعداد Firebase:
+  firebase.initializeApp({
+    apiKey: "...", authDomain: "...", projectId: "..."
+  });
   const db = firebase.firestore();
 
-  const logisticsWeakDiv = document.getElementById('logistics-weak');
-  const notesList = document.getElementById('notes-list');
+  const filterEls = { campaigns: [], genders: [] };
+  document.querySelectorAll('.filters input').forEach(chk => chk.addEventListener('change', () => load()));
 
-  async function fetchAndRender() {
-    const selectedCampaigns = [...document.querySelectorAll('#campaigns input:checked')].map(el => el.value);
-    const selectedGenders = [...document.querySelectorAll('#genders input:checked')].map(el => el.value);
+  async function load() {
+    const checked = field => Array.from(document.querySelectorAll(`.${field}-filter:checked`)).map(i => i.value);
+    filterEls.campaigns = checked('campaign');
+    filterEls.genders = checked('gender');
 
-    const snapshot = await db.collection("evaluation").get();
-    let weakCount = 0;
-    let notes = [];
+    const data = (await db.collection('evaluation').get()).docs
+      .map(d => d.data())
+      .filter(r => filterEls.campaigns.includes(r.campaign) && filterEls.genders.includes(r.gender));
 
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      if (!selectedCampaigns.includes(data.campaign)) return;
-      if (data.gender && !selectedGenders.includes(data.gender)) return;
+    const totalCount = data.length || 1;
 
-      // سؤال اللوجستية رقم 13
-      if (data.logistics && data.logistics.q13 === "ضعيف") weakCount++;
+    const stats = (key) => {
+      const cnt = data.filter(r => r[key] === 'ضعيف').length;
+      return { cnt, pct: ((cnt/totalCount)*100).toFixed(1) };
+    };
 
-      // ملاحظات
-      notes.push({
-        positive: data.notes?.positive || "",
-        negative: data.notes?.negative || "",
-        suggestions: data.notes?.suggestions || ""
-      });
+    // تحليل ١٠ أسئلة مختارة كمثال:
+    const analyses = [
+      { title: 'ضعيف في نظافة السكن', key: 'housing_q1' },
+      { title: 'ضعيف في توافر الراحة في السكن', key: 'housing_q2' },
+      { title: 'ضعيف في جودة الطعام', key: 'food_q6' },
+      { title: 'ضعيف في مواعيد تقديم الوجبات', key: 'food_q7' },
+      { title: 'ضعيف في راحة النقل', key: 'transport_q10' },
+      { title: 'ضعيف في أمان السائقين', key: 'transport_q11' },
+      { title: 'ضعيف في سرعة الدعم الفني', key: 'logistics_q14' },
+      { title: 'ضعيف في وضوح التعليمات', key: 'logistics_q15' },
+      { title: 'ضعيف في نظافة مخيم منى', key: 'mina_q19' },
+      { title: 'ضعيف في سهولة التفويج من عرفة', key: 'arafat_q29' }
+    ];
+
+    document.getElementById('analytics').innerHTML = analyses.map(a => {
+      const s = stats(a.key);
+      return `<div class="card"><h4>${a.title}</h4><p>عدد: ${s.cnt} (${s.pct}%) من ${totalCount}</p></div>`;
+    }).join('');
+
+    // الملاحظات:
+    const pos = [], neg = [], sug = [];
+    data.forEach(r => {
+      r.notes.positive && pos.push(r.notes.positive);
+      r.notes.negative && neg.push(r.notes.negative);
+      r.notes.suggestions && sug.push(r.notes.suggestions);
     });
 
-    logisticsWeakDiv.innerHTML = `<h3>ضعيف في سؤال الخدمات اللوجستية ١</h3><p>${weakCount} إجابة</p>`;
-
-    notesList.innerHTML = '';
-    notes.forEach(n => {
-      if (n.positive) notesList.innerHTML += `<li>إيجابي: ${n.positive}</li>`;
-      if (n.negative) notesList.innerHTML += `<li>سلبي: ${n.negative}</li>`;
-      if (n.suggestions) notesList.innerHTML += `<li>اقتراح: ${n.suggestions}</li>`;
-    });
+    const fillList = (id, arr) => {
+      document.getElementById(id).innerHTML = arr.map(t => `<li>${t}</li>`).join('');
+    };
+    fillList('notes-positive', pos);
+    fillList('notes-negative', neg);
+    fillList('notes-suggestions', sug);
   }
 
-  document.querySelectorAll('input[type=checkbox]').forEach(cb => cb.addEventListener('change', fetchAndRender));
-  fetchAndRender();
+  load();
 </script>
 
 </body>
