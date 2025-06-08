@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>نسبة إنجاز الاستبيان لكل حملة</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
   <style>
     body {
       font-family: 'Cairo', sans-serif;
@@ -16,7 +16,7 @@
       padding: 20px;
       background: #f9f9f9;
       text-align: center;
-      margin: auto;
+      direction: rtl;
     }
     .chart-container {
       margin-bottom: 30px;
@@ -32,6 +32,13 @@
     h3 {
       margin: 10px 0;
       font-size: 16px;
+    }
+    .summary-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 5px #ccc;
+      padding: 20px;
+      margin-top: 30px;
     }
   </style>
 </head>
@@ -54,12 +61,7 @@
   <canvas id="chart-hydaya"></canvas>
 </div>
 
-<div class="chart-container" id="summaryBox">
-  <h3>عدد المجيبين:</h3>
-  <p id="count-khalaf">...</p>
-  <p id="count-rayah">...</p>
-  <p id="count-hydaya">...</p>
-</div>
+<div class="summary-card" id="summary"></div>
 
 <script>
   const firebaseConfig = {
@@ -74,35 +76,65 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
+  const campaigns = ["حملة الخلف", "حملة الراية الخضراء", "حملة الهداية"];
+  const colors = {
+    "حملة الخلف": "#2d9958",
+    "حملة الراية الخضراء": "#fab334",
+    "حملة الهداية": "#e8593a"
+  };
+  const keys = {
+    "حملة الخلف": "khalaf",
+    "حملة الراية الخضراء": "rayah",
+    "حملة الهداية": "hydaya"
+  };
+
   async function drawCharts() {
-    const evalSnapshot = await db.collection("evaluation").get();
-    const kawadrSnapshot = await db.collection("kawadr").get();
+    const responsesSnapshot = await db.collection("evaluation").get();
+    const targetsSnapshot = await db.collection("بيانات الحجاج").get();
 
-    const answered = { "حملة الخلف": 0, "حملة الراية الخضراء": 0, "حملة الهداية": 0 };
-    const total =    { "حملة الخلف": 0, "حملة الراية الخضراء": 0, "حملة الهداية": 0 };
+    const counts = {};
+    const targets = {};
 
-    evalSnapshot.forEach(doc => {
-      const camp = doc.data().campaign;
-      if (answered[camp] !== undefined) answered[camp]++;
+    campaigns.forEach(name => {
+      counts[name] = 0;
+      targets[name] = 0;
     });
 
-    kawadrSnapshot.forEach(doc => {
-      const camp = doc.data().campaign;
-      if (total[camp] !== undefined) total[camp]++;
+    responsesSnapshot.forEach(doc => {
+      const c = doc.data().campaign;
+      if (counts[c] !== undefined) counts[c]++;
     });
 
-    Object.keys(answered).forEach(camp => {
-      const done = answered[camp];
-      const base = total[camp] || 1; // تجنب القسمة على صفر
-      const percent = Math.round((done / base) * 100);
-      const ctx = document.getElementById("chart-" + getKey(camp)).getContext("2d");
+    targetsSnapshot.forEach(doc => {
+      const c = doc.data().campaign;
+      if (targets[c] !== undefined) targets[c]++;
+    });
 
+    // Summary text
+    let summaryHTML = "<h3>عدد المجيبين:</h3><ul style='text-align:right;padding-right:20px'>";
+    campaigns.forEach(campaign => {
+      const count = counts[campaign];
+      summaryHTML += `<li>${campaign}: ${count} مشارك</li>`;
+    });
+    summaryHTML += "</ul>";
+    document.getElementById("summary").innerHTML = summaryHTML;
+
+    // Draw charts
+    campaigns.forEach(campaign => {
+      const count = counts[campaign];
+      const total = targets[campaign];
+      const percent = total > 0 ? Math.round((count / total) * 100) : 0;
+      const canvasId = "chart-" + keys[campaign];
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+
+      const ctx = canvas.getContext("2d");
       new Chart(ctx, {
         type: 'doughnut',
         data: {
           datasets: [{
             data: [percent, 100 - percent],
-            backgroundColor: [getColor(camp), '#eee'],
+            backgroundColor: [colors[campaign], '#eee'],
             borderWidth: 0
           }]
         },
@@ -112,30 +144,19 @@
             legend: { display: false },
             datalabels: {
               display: true,
-              formatter: () => percent + '%',
               color: '#333',
-              font: { weight: 'bold', size: 14 }
+              formatter: () => percent + '%',
+              font: {
+                weight: 'bold',
+                size: 16
+              }
             }
           },
           cutout: '70%'
         },
         plugins: [ChartDataLabels]
       });
-
-      document.getElementById("count-" + getKey(camp)).textContent = `${camp}: ${done} من ${base}`;
     });
-  }
-
-  function getKey(name) {
-    return name === "حملة الخلف" ? "khalaf" :
-           name === "حملة الراية الخضراء" ? "rayah" :
-           "hydaya";
-  }
-
-  function getColor(name) {
-    return name === "حملة الخلف" ? "#2d9958" :
-           name === "حملة الراية الخضراء" ? "#fab334" :
-           "#e8593a";
   }
 
   drawCharts();
