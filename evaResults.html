@@ -16,6 +16,7 @@
       margin: 0;
       background: #f9f9f9;
     }
+
     header {
       background: #2d9958;
       color: white;
@@ -23,13 +24,18 @@
       text-align: center;
       position: relative;
     }
+
     header img {
       position: absolute;
       top: 15px;
       left: 15px;
       height: 50px;
     }
-    h1 { margin: 0; font-size: 22px; }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+    }
 
     .filters {
       background: white;
@@ -158,11 +164,8 @@
     const data = [];
 
     snapshot.forEach(doc => {
-      const campaign = doc.id.split('_')[0]; // مثال: "حملة الخلف"
-      if (selectedFilters.campaign.size === 0 || selectedFilters.campaign.has(campaign)) {
-        const entry = doc.data();
-        entry._campaign = campaign;
-        entry._id = doc.id;
+      const entry = doc.data();
+      if (selectedFilters.campaign.size === 0 || selectedFilters.campaign.has(entry.campaign)) {
         data.push(entry);
       }
     });
@@ -172,18 +175,18 @@
   }
 
   function renderChart(data) {
-    const sections = ['arafat', 'mina', 'transport', 'logistics'];
-    const labels = ['عرفة', 'منى', 'النقل', 'الخدمات'];
+    const sections = ['food', 'arafat', 'mina', 'transport', 'logistics'];
+    const labels = ['التغذية', 'عرفة', 'منى', 'النقل', 'الخدمات'];
 
     const averages = sections.map(section => {
       const sectionAverages = data.map(entry => {
         if (entry[section]) {
           const values = Object.values(entry[section])
-            .map(v => typeof v === 'string' && v.includes('ممتاز') ? 5 :
-                       v.includes('جيد') ? 4 :
-                       v.includes('متوسط') ? 3 :
-                       v.includes('ضعيف') ? 2 :
-                       v.includes('سيئ') ? 1 : 0);
+            .map(v => v.includes('ممتاز') ? 5 :
+                      v.includes('جيد') ? 4 :
+                      v.includes('متوسط') ? 3 :
+                      v.includes('ضعيف') ? 2 :
+                      v.includes('سيئ') ? 1 : 0);
           return values.length ? values.reduce((a,b) => a+b, 0) / values.length : 0;
         } else return 0;
       });
@@ -199,7 +202,7 @@
         datasets: [{
           label: 'متوسط التقييم',
           data: averages,
-          backgroundColor: ['#2d9958', '#44bde7', '#fab334', '#e8593a']
+          backgroundColor: ['#2d9958', '#44bde7', '#fab334', '#e8593a', '#b085e9']
         }]
       },
       options: {
@@ -219,15 +222,17 @@
     table.innerHTML = `
       <thead>
         <tr>
-          <th>رقم</th>
-          <th>اسم الحملة</th>
-          <th>معدل عام تقريبي</th>
+          <th>#</th>
+          <th>الاسم</th>
+          <th>الحملة</th>
+          <th>الجنس</th>
+          <th>معدل تقريبي</th>
         </tr>
       </thead>
       <tbody>
         ${data.map((d, i) => {
           const allValues = [];
-          ['arafat', 'mina', 'transport', 'logistics'].forEach(sec => {
+          ['food', 'arafat', 'mina', 'transport', 'logistics'].forEach(sec => {
             if (d[sec]) allValues.push(...Object.values(d[sec]));
           });
 
@@ -243,7 +248,9 @@
 
           return `<tr>
             <td>${i+1}</td>
-            <td>${d._campaign}</td>
+            <td>${d.name || '-'}</td>
+            <td>${d.campaign || '-'}</td>
+            <td>${d.gender || '-'}</td>
             <td>${avg}</td>
           </tr>`;
         }).join('')}
