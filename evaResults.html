@@ -2,79 +2,136 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>نتائج التقييم - ركن الحطيم</title>
+  <title>نتائج تقييم الحج - ركن الحطيم</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- خط وهوية -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo&display=swap" rel="stylesheet">
+  
   <style>
     body {
       font-family: 'Cairo', sans-serif;
-      background: #f7f7f7;
       margin: 0;
+      padding: 0;
+      background: #f9f9f9;
+    }
+
+    header {
+      background: #2d9958;
+      color: white;
       padding: 20px;
+      text-align: center;
+      position: relative;
     }
+
+    header img {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      height: 50px;
+    }
+
     h1 {
-      text-align: center;
-      color: #2d9958;
+      margin: 0;
+      font-size: 22px;
     }
+
     .filters {
-      text-align: center;
-      margin-bottom: 20px;
+      background: white;
+      padding: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      border-bottom: 2px solid #e0e0e0;
     }
+
+    .filter-group {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
     .filter-btn {
-      border: none;
-      margin: 5px;
-      padding: 10px 20px;
-      background: #e0e0e0;
+      padding: 6px 15px;
+      border: 1px solid #2d9958;
       border-radius: 20px;
+      background: white;
+      color: #2d9958;
       cursor: pointer;
+      transition: all 0.2s ease-in-out;
     }
+
     .filter-btn.active {
       background: #2d9958;
       color: white;
     }
+
     .charts-container, .results-container {
-      margin-top: 30px;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 20px;
+      padding: 20px;
     }
-    canvas {
+
+    .card {
       background: white;
-      border-radius: 8px;
-      padding: 15px;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
     }
+
+    canvas {
+      width: 100% !important;
+      height: auto !important;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
+      margin-top: 10px;
       background: white;
-      margin-top: 20px;
     }
+
     th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
+      padding: 10px;
       text-align: center;
+      border: 1px solid #ccc;
     }
+
     th {
-      background: #2d9958;
+      background-color: #2d9958;
       color: white;
+    }
+
+    @media (max-width: 600px) {
+      header h1 {
+        font-size: 18px;
+      }
+      .filter-btn {
+        padding: 5px 10px;
+        font-size: 13px;
+      }
     }
   </style>
 </head>
 <body>
 
-<h1>نتائج استبيان الحجاج</h1>
+<header>
+  <img src="https://i.imgur.com/7ZLz5nG.png" alt="شعار الشركة">
+  <h1>نتائج تقييم الحجاج - شركة ركن الحطيم</h1>
+</header>
 
 <div class="filters">
-  <div>
+  <div class="filter-group">
     <strong>الحملة:</strong>
     <button class="filter-btn" data-group="campaign" data-value="khalaf">الخلف</button>
     <button class="filter-btn" data-group="campaign" data-value="rayah">الراية الخضراء</button>
     <button class="filter-btn" data-group="campaign" data-value="hydaya">الهداية</button>
   </div>
-  <div>
+  <div class="filter-group">
     <strong>الجنس:</strong>
     <button class="filter-btn" data-group="gender" data-value="ذكر">ذكر</button>
     <button class="filter-btn" data-group="gender" data-value="أنثى">أنثى</button>
@@ -82,13 +139,17 @@
 </div>
 
 <div class="charts-container">
-  <canvas id="summaryChart" width="400" height="400"></canvas>
+  <div class="card">
+    <canvas id="summaryChart"></canvas>
+  </div>
 </div>
 
-<div class="results-container" id="results"></div>
+<div class="results-container">
+  <div class="card" id="results"></div>
+</div>
 
 <script>
-  // ربط Firebase
+  // Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyBfL7s5bJKGqXfMQg39JdrWvNO5WcA7GM4",
     authDomain: "hajj2025-56177.firebaseapp.com",
@@ -127,7 +188,6 @@
       const entry = doc.data();
       const campaignMatch = selectedFilters.campaign.size === 0 || [...selectedFilters.campaign].some(c => doc.id.startsWith(c));
       const genderMatch = selectedFilters.gender.size === 0 || selectedFilters.gender.has(entry.gender);
-
       if (campaignMatch && genderMatch) {
         data.push(entry);
       }
