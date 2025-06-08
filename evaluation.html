@@ -1,0 +1,583 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نموذج تقييم نهاية الحج - ركن الحطيم</title>
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 15px;
+      direction: rtl;
+      max-width: 600px;
+      margin-right: auto;
+      margin-left: auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    header img {
+      width: 90px;
+      margin-bottom: 10px;
+    }
+    header h1 {
+      font-size: 20px;
+      margin: 0;
+      color: #2d9958;
+    }
+    .section {
+      background-color: #ffffff;
+      margin-bottom: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+    .section h2 {
+      margin-top: 0;
+      background-color: #2d9958;
+      color: white;
+      padding: 10px;
+      border-right: 5px solid #1b6e3c;
+      border-radius: 6px;
+      font-size: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    label.question {
+      display: block;
+      margin-top: 20px;
+      margin-bottom: 5px;
+      font-weight: bold;
+      font-size: 15px;
+      color: #333;
+    }
+    input[type="text"], select, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    textarea {
+      height: 80px;
+    }
+    .required:after {
+      content: " *";
+      color: red;
+    }
+    .submit-btn {
+      background-color: #2d9958;
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+    }
+    .counter {
+      font-size: 12px;
+      color: #e4e4e4;
+    }
+    .radio-group {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+    .radio-option {
+      background-color: #f2f2f2;
+      padding: 10px;
+      border-radius: 6px;
+      flex: 1;
+      text-align: center;
+      margin-left: 5px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+    }
+    .radio-option input {
+      display: none;
+    }
+    .radio-option.selected {
+      background-color: #2d9958;
+      color: white;
+      border-color: #1b6e3c;
+    }
+  
+.radio-option.excellent {
+  background-color: #2d9958 !important;
+  color: white;
+  border-color: #1b6e3c;
+}
+.radio-option.good {
+  background-color: #fab334 !important;
+  color: white;
+  border-color: #e89f00;
+}
+.radio-option.average {
+  background-color: #e8593a !important;
+  color: white;
+  border-color: #d34722;
+}
+.radio-option.poor {
+  background-color: #d62c2c !important;
+  color: white;
+  border-color: #b41d1d;
+}
+
+
+.radio-option input:checked + label,
+.radio-option.selected {
+  box-shadow: 0 0 0 2px #5552;
+}
+
+</style>
+
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<header>
+  <img src="logo.png" alt="شعار ركن الحطيم">
+  <h1>شركة ركن الحطيم للحج</h1>
+</header>
+
+
+<div class="section" style="background-color: #e6f3ec; border: 1px solid #2d9958;">
+  <p style="font-size: 16px; text-align: center; margin: 0;">
+    عزيزي الحاج، هذا الاستبيان سيأخذ من وقتك دقيقتين فقط لتقييم الخدمات المقدمة خلال موسم الحج. سيساعدنا ذلك في تحسين الأداء وخدمة ضيوف الرحمن بشكل أفضل.
+  </p>
+</div>
+<form id="hajj-evaluation-form">
+
+
+  <div class="section">
+    <h2><span>القسم الأول: معلومات عامة</span><span class="counter" data-total="1">0/1</span></h2>
+    <label>الاسم الثلاثي</label>
+    <input type="text" name="name">
+    <label>رقم الجوال</label>
+    <input type="text" name="mobile">
+    <label class="required">الحملة</label>
+    <select name="campaign" required>
+      <option value="">اختر الحملة</option>
+      <option>حملة الخلف</option>
+      <option>حملة الراية الخضراء</option>
+      <option>حملة الهداية</option>
+    </select>
+  </div>
+
+  <div class="section">
+    <h2><span>القسم الثاني: السكن</span><span class="counter" data-total="4">0/4</span></h2>
+
+    <label class="question required">1. مدى نظافة السكن</label>
+    <div class="radio-group" data-name="q1">
+      <label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q1" value="ممتاز"> ممتاز</label>
+      <label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q1" value="جيد"> جيد</label>
+      <label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q1" value="مقبول"> مقبول</label>
+      <label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q1" value="ضعيف"> ضعيف</label>
+    </div>
+
+    <label class="question required">2. توفر وسائل الراحة</label>
+    <div class="radio-group" data-name="q2">
+      <label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q2" value="ممتاز"> ممتاز</label>
+      <label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q2" value="جيد"> جيد</label>
+      <label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q2" value="مقبول"> مقبول</label>
+      <label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q2" value="ضعيف"> ضعيف</label>
+    </div>
+
+    <label class="question required">3. سهولة الوصول إلى السكن</label>
+    <div class="radio-group" data-name="q3">
+      <label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q3" value="ممتاز"> ممتاز</label>
+      <label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q3" value="جيد"> جيد</label>
+      <label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q3" value="مقبول"> مقبول</label>
+      <label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q3" value="ضعيف"> ضعيف</label>
+    </div>
+
+    <label class="question required">4. معالجة مشاكل السكن</label>
+    <div class="radio-group" data-name="q4">
+      <label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q4" value="ممتاز"> ممتاز</label>
+      <label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q4" value="جيد"> جيد</label>
+      <label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q4" value="مقبول"> مقبول</label>
+      <label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q4" value="ضعيف"> ضعيف</label>
+    </div>
+  </div>
+
+  
+<!-- القسم الثالث: التغذية -->
+<div class="section">
+  <h2><span>القسم الثالث: التغذية</span><span class="counter" data-total="4">0/4</span></h2>
+  <label class="question required">5. تنوع الوجبات المقدمة خلال الموسم</label>
+<div class="radio-group" data-name="q5">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q5" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q5" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q5" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q5" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">6. جودة الطعام المقدم من حيث الطعم والنظافة</label>
+<div class="radio-group" data-name="q6">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q6" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q6" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q6" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q6" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">7. مدى التزام مواعيد تقديم الوجبات</label>
+<div class="radio-group" data-name="q7">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q7" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q7" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q7" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q7" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">8. توافر خيارات غذائية تناسب الاحتياجات الخاصة</label>
+<div class="radio-group" data-name="q8">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q8" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q8" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q8" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q8" value="ضعيف"> ضعيف</label>
+</div>
+
+</div>
+
+<!-- القسم الرابع: النقل -->
+<div class="section">
+  <h2><span>القسم الرابع: النقل</span><span class="counter" data-total="4">0/4</span></h2>
+  <label class="question required">9. توفر وسائل النقل في الأوقات المحددة</label>
+<div class="radio-group" data-name="q9">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q9" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q9" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q9" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q9" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">10. راحة وسائل النقل المستخدمة (حافلات، سيارات)</label>
+<div class="radio-group" data-name="q10">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q10" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q10" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q10" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q10" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">11. مدى التزام السائقين بالسلامة والقيادة الآمنة</label>
+<div class="radio-group" data-name="q11">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q11" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q11" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q11" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q11" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">12. سهولة التنقل بين المشاعر المقدسة</label>
+<div class="radio-group" data-name="q12">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q12" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q12" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q12" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q12" value="ضعيف"> ضعيف</label>
+</div>
+
+</div>
+
+<!-- القسم الخامس: الخدمات اللوجستية والدعم -->
+<div class="section">
+  <h2><span>القسم الخامس: الخدمات اللوجستية والدعم</span><span class="counter" data-total="4">0/4</span></h2>
+  <label class="question required">13. توفر المستلزمات الأساسية (مثل أدوات النظافة، الكمامات)</label>
+<div class="radio-group" data-name="q13">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q13" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q13" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q13" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q13" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">14. سرعة استجابة فرق الدعم الفني للمشكلات التقنية أو اللوجستية</label>
+<div class="radio-group" data-name="q14">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q14" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q14" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q14" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q14" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">15. مدى وضوح التعليمات والإرشادات المقدمة للكوادر</label>
+<div class="radio-group" data-name="q15">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q15" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q15" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q15" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q15" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">16. فعالية التواصل مع الإدارة والمشرفين خلال الموسم</label>
+<div class="radio-group" data-name="q16">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q16" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q16" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q16" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q16" value="ضعيف"> ضعيف</label>
+</div>
+
+</div>
+
+<!-- القسم السادس: مخيمات منى -->
+<div class="section">
+  <h2><span>القسم السادس: مخيمات منى</span><span class="counter" data-total="8">0/8</span></h2>
+  <label class="question required">17. مدى راحة أماكن النوم داخل المخيم</label>
+<div class="radio-group" data-name="q17">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q17" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q17" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q17" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q17" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">18. توفر الأغطية والفرش بشكل كافٍ</label>
+<div class="radio-group" data-name="q18">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q18" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q18" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q18" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q18" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">19. نظافة دورات المياه في مخيم منى</label>
+<div class="radio-group" data-name="q19">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q19" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q19" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q19" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q19" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">20. عدد دورات المياه مقارنة بعدد الحجاج</label>
+<div class="radio-group" data-name="q20">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q20" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q20" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q20" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q20" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">21. توفر المياه والصابون بشكل مستمر</label>
+<div class="radio-group" data-name="q21">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q21" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q21" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q21" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q21" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">22. وضوح التعليمات داخل المخيم</label>
+<div class="radio-group" data-name="q22">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q22" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q22" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q22" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q22" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">23. التعامل مع الطوارئ أو الحالات الصحية</label>
+<div class="radio-group" data-name="q23">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q23" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q23" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q23" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q23" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">24. تنظيم الدخول والخروج من المخيم (التفويج للصلاة أو الرمي)</label>
+<div class="radio-group" data-name="q24">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q24" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q24" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q24" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q24" value="ضعيف"> ضعيف</label>
+</div>
+
+</div>
+
+<!-- القسم السابع: مخيمات عرفة -->
+<div class="section">
+  <h2><span>القسم السابع: مخيمات عرفة</span><span class="counter" data-total="7">0/7</span></h2>
+  <label class="question required">25. توفر أماكن مريحة للجلوس أو الاستراحة أثناء يوم عرفة</label>
+<div class="radio-group" data-name="q25">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q25" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q25" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q25" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q25" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">26. نظافة دورات المياه في عرفة</label>
+<div class="radio-group" data-name="q26">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q26" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q26" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q26" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q26" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">27. عدد دورات المياه مقارنة بعدد الحجاج</label>
+<div class="radio-group" data-name="q27">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q27" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q27" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q27" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q27" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">28. توفر المياه والمستلزمات الصحية</label>
+<div class="radio-group" data-name="q28">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q28" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q28" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q28" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q28" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">29. سهولة الدخول والخروج من المخيم</label>
+<div class="radio-group" data-name="q29">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q29" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q29" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q29" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q29" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">30. مدى وضوح خطة التفويج بعد الغروب</label>
+<div class="radio-group" data-name="q30">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q30" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q30" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q30" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q30" value="ضعيف"> ضعيف</label>
+</div>
+<label class="question required">31. مدى التزام الجدول الزمني في التفويج إلى مزدلفة</label>
+<div class="radio-group" data-name="q31">
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q31" value="ممتاز"> ممتاز</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q31" value="جيد"> جيد</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q31" value="مقبول"> مقبول</label>
+<label class="radio-option"><input type="radio" onclick="this.parentElement.click();" name="q31" value="ضعيف"> ضعيف</label>
+</div>
+
+</div>
+
+<!-- القسم الثامن: الملاحظات والاقتراحات -->
+<div class="section">
+  <h2><span>القسم الثامن: الملاحظات والاقتراحات</span><span class="counter" data-total="3">0/3</span></h2>
+  <label class="question">ما هي أبرز الإيجابيات التي لاحظتها خلال الموسم؟</label>
+  <textarea name="positive"></textarea>
+  <label class="question">ما هي أبرز التحديات أو السلبيات التي واجهتك؟</label>
+  <textarea name="negative"></textarea>
+  <label class="question">هل لديك أي اقتراحات لتحسين الخدمات في المواسم القادمة؟</label>
+  <textarea name="suggestions"></textarea>
+</div>
+<div class="section">
+    <button type="submit" class="submit-btn">إرسال التقييم</button>
+  </div>
+
+</form>
+
+ 
+
+
+<div id="loading" style="display:none;text-align:center;padding:20px;">
+  <p>جاري الإرسال، يرجى الانتظار...</p>
+</div>
+<div id="thankyou" style="display:none;text-align:center;padding:20px;">
+  <h3 style="color:#2d9958;">شكرًا لتقييمك، نسأل الله أن يكتب أجرك ويوفقك لخدمة الحجاج.</h3>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+  const form = document.getElementById("hajj-evaluation-form");
+  const loading = document.getElementById("loading");
+  const thankyou = document.getElementById("thankyou");
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCjLt3g-2GPsMlxXPnzySXpCHl3-FyA80I",
+    authDomain: "hajj2025-56177.firebaseapp.com",
+    projectId: "hajj2025-56177",
+    storageBucket: "hajj2025-56177.firebasestorage.app",
+    messagingSenderId: "199404422758",
+    appId: "1:199404422758:web:35a17e6155f660e0128fa7",
+    measurementId: "G-T5NYMDX68Z"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  form.addEventListener("submit", async function(event) {
+    event.preventDefault();
+    form.style.display = "none";
+    loading.style.display = "block";
+
+    const formData = new FormData(form);
+    const all = Object.fromEntries(formData.entries());
+    const campaign = all.campaign || "other";
+
+    const data = {
+      name: all.name || "",
+      mobile: all.mobile || "",
+      campaign: campaign,
+      housing: {},
+      food: {},
+      transport: {},
+      logistics: {},
+      mina: {},
+      arafat: {},
+      notes: {
+        positive: all.positive || "",
+        negative: all.negative || "",
+        suggestions: all.suggestions || ""
+      }
+    };
+
+    Object.entries(all).forEach(([key, value]) => {
+      const q = parseInt(key.replace("q", ""));
+      if (!q) return;
+      if (q >= 1 && q <= 4) data.housing[key] = value;
+      else if (q >= 5 && q <= 8) data.food[key] = value;
+      else if (q >= 9 && q <= 12) data.transport[key] = value;
+      else if (q >= 13 && q <= 16) data.logistics[key] = value;
+      else if (q >= 17 && q <= 24) data.mina[key] = value;
+      else if (q >= 25 && q <= 31) data.arafat[key] = value;
+    });
+
+    try {
+      const snapshot = await db.collection("evaluation").where("campaign", "==", campaign).get();
+      const docId = campaign.toLowerCase() + "_" + (snapshot.size + 1);
+      await db.collection("evaluation").doc(docId).set(data);
+      loading.style.display = "none";
+      thankyou.style.display = "block";
+    } catch (error) {
+      loading.innerHTML = "<p style='color:red;'>حدث خطأ أثناء الإرسال، حاول مرة أخرى.</p>";
+      console.error(error);
+    }
+  });
+
+  function updateCounters() {
+    document.querySelectorAll('.counter').forEach(counter => {
+      const section = counter.closest('.section');
+      const requiredInputs = section.querySelectorAll('select[required], input[required]:not([type=radio]), textarea[required]');
+      const radioGroups = [...new Set([...section.querySelectorAll('input[type=radio]')].map(r => r.name))];
+      let filledRadios = radioGroups.filter(name => section.querySelector(`input[name="${name}"]:checked`)).length;
+      let filled = 0;
+      requiredInputs.forEach(input => {
+        if (input.value.trim() !== "") filled++;
+      });
+      const total = parseInt(counter.dataset.total);
+      counter.textContent = (filled + filledRadios) + "/" + total;
+    });
+  }
+
+  document.querySelectorAll('.radio-group').forEach(group => {
+    const options = group.querySelectorAll('.radio-option');
+    options.forEach(option => {
+      option.addEventListener('click', () => {
+        options.forEach(o => o.classList.remove('selected', 'excellent', 'good', 'average', 'poor'));
+
+        const input = option.querySelector('input');
+        input.checked = true;
+        option.classList.add('selected');
+
+        const value = input.value;
+        if (value === 'ممتاز') option.classList.add('excellent');
+        else if (value === 'جيد') option.classList.add('good');
+        else if (value === 'مقبول') option.classList.add('average');
+        else if (value === 'ضعيف') option.classList.add('poor');
+
+        updateCounters();
+      });
+    });
+  });
+
+  window.addEventListener('load', updateCounters);
+  form.addEventListener('input', updateCounters);
+</script>
+
+</body>
+</html>
