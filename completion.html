@@ -137,6 +137,12 @@
       });
     });
 
+
+<div class="chart-container">
+  <h3>نسبة الذكور والإناث في الإجابات</h3>
+  <canvas id="chart-gender"></canvas>
+</div>
+
     // عرض عدد المجيبين أسفل الرسومات
     const info = document.getElementById("count-info");
     info.innerHTML = `
@@ -148,6 +154,48 @@
   }
 
   drawCharts();
+  
+  async function drawGenderChart() {
+  const snapshot = await db.collection("evaluation").get();
+  let male = 0;
+  let female = 0;
+
+  snapshot.forEach(doc => {
+    const gender = doc.data().gender;
+    if (gender === "ذكر") male++;
+    if (gender === "أنثى") female++;
+  });
+
+  const total = male + female;
+  const ctx = document.getElementById("chart-gender").getContext("2d");
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['ذكر', 'أنثى'],
+      datasets: [{
+        data: [male, female],
+        backgroundColor: ['#2d9958', '#fab334'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      plugins: {
+        tooltip: { enabled: true },
+        legend: { position: 'bottom' },
+        title: {
+          display: true,
+          text: `إجمالي: ${total} مشارك`,
+          font: { size: 14 }
+        }
+      },
+      cutout: '70%'
+    }
+  });
+}
+
+drawGenderChart();
+  
+  
 </script>
 
 </body>
