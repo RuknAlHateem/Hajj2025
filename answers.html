@@ -18,17 +18,21 @@
       background-repeat: no-repeat;
       background-position: top 20px center;
       background-size: 80px;
-      padding-top: 100px;
+      padding-top: 140px;
     }
     .header {
+      position: fixed;
+      top: 0;
+      right: 0;
+      left: 0;
+      z-index: 1000;
+      background: #2d9958;
+      color: white;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
-      background: #2d9958;
-      padding: 10px;
-      border-radius: 10px;
-      color: white;
+      padding: 10px 20px;
+      border-bottom: 2px solid #fab334;
     }
     .arrow {
       font-size: 20px;
@@ -47,8 +51,9 @@
     }
     h2 {
       font-size: 18px;
-      margin-bottom: 10px;
+      margin: 0;
       text-align: center;
+      flex: 1;
     }
     .field {
       margin-bottom: 10px;
@@ -90,6 +95,51 @@
 
   let docs = [], current = 0;
 
+  const questions = {
+    food: {
+      q1: "تقييمك لجودة وجبات الإفطار؟",
+      q2: "تقييمك لجودة وجبات الغداء؟",
+      q3: "تقييمك لجودة وجبات العشاء؟",
+      q4: "تنوع الوجبات المقدمة؟",
+      q5: "مدى كفاية كميات الطعام؟",
+      q6: "نظافة أدوات الطعام؟",
+      q7: "مدى توفر المياه والمشروبات؟",
+      q8: "التعامل العام من الطاقم الغذائي؟",
+      q9: "مدى رضاك العام عن التغذية؟"
+    },
+    transport: {
+      q10: "التزام الحافلات بالمواعيد؟",
+      q11: "نظافة الحافلات؟",
+      q12: "راحة المقاعد؟",
+      q13: "تعامل السائقين؟"
+    },
+    logistics: {
+      q14: "مدى توفر المستلزمات؟",
+      q15: "جودة الأدوات المقدمة؟",
+      q16: "سرعة الاستجابة للطلبات؟",
+      q17: "رضاك عن الخدمات اللوجستية؟"
+    },
+    mina: {
+      q18: "راحة أماكن النوم في منى؟",
+      q19: "نظافة المخيم في منى؟",
+      q20: "توفر دورات المياه في منى؟",
+      q21: "نظافة دورات المياه في منى؟",
+      q22: "التكييف والتهوية داخل المخيم؟",
+      q23: "وقت التفويج من منى؟",
+      q24: "تنظيم التفويج من منى؟",
+      q25: "رضاك العام عن مخيم منى؟"
+    },
+    arafat: {
+      q26: "راحة أماكن النوم في عرفة؟",
+      q27: "نظافة المخيم في عرفة؟",
+      q28: "توفر دورات المياه في عرفة؟",
+      q29: "نظافة دورات المياه في عرفة؟",
+      q30: "التكييف والتهوية داخل مخيم عرفة؟",
+      q31: "تنظيم التفويج من عرفة؟",
+      q32: "رضاك العام عن مخيم عرفة؟"
+    }
+  };
+
   function loadDocs() {
     db.collection("evaluation").get().then(snapshot => {
       docs = snapshot.docs;
@@ -106,34 +156,38 @@
     const container = document.getElementById("answers");
     container.innerHTML = "";
 
-    for (const section in data) {
-      if (typeof data[section] === 'object' && data[section] !== null && section !== 'notes') {
+    for (const section of ['food', 'transport', 'logistics', 'mina', 'arafat']) {
+      if (data[section]) {
         const secData = data[section];
-        for (const key in secData) {
-          const box = document.createElement('div');
-          box.className = 'answer-box';
-          box.innerHTML = `
-            <div class="field">
-              <label>${section} - ${key}</label>
-              <div class="value">${secData[key]}</div>
-            </div>
-          `;
-          container.appendChild(box);
+        for (const key in questions[section]) {
+          if (secData[key] !== undefined) {
+            const box = document.createElement('div');
+            box.className = 'answer-box';
+            box.innerHTML = `
+              <div class="field">
+                <label>${questions[section][key]}</label>
+                <div class="value">${secData[key]}</div>
+              </div>
+            `;
+            container.appendChild(box);
+          }
         }
       }
     }
 
     if (data.notes) {
       for (const type in data.notes) {
-        const box = document.createElement('div');
-        box.className = 'answer-box';
-        box.innerHTML = `
-          <div class="field">
-            <label>ملاحظة (${type})</label>
-            <div class="value">${data.notes[type]}</div>
-          </div>
-        `;
-        container.appendChild(box);
+        if (data.notes[type]) {
+          const box = document.createElement('div');
+          box.className = 'answer-box';
+          box.innerHTML = `
+            <div class="field">
+              <label>ملاحظة (${type})</label>
+              <div class="value">${data.notes[type]}</div>
+            </div>
+          `;
+          container.appendChild(box);
+        }
       }
     }
   }
