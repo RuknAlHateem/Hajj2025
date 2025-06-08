@@ -1,0 +1,119 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نسبة إنجاز الاستبيان لكل حملة</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'Cairo', sans-serif; font-size: 14px; max-width: 420px; padding: 20px; background: #f9f9f9; text-align: center; }
+    .chart-container { margin-bottom: 30px; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 5px #ccc; }
+    canvas { max-width: 200px; margin: auto; }
+    h3 { margin: 10px 0; font-size: 16px; }
+  </style>
+</head>
+<body>
+
+<h2>نسبة إنجاز الاستبيان لكل حملة</h2>
+
+<div class="chart-container">
+  <h3>حملة الخلف</h3>
+  <canvas id="chart-khalaf"></canvas>
+</div>
+
+<div class="chart-container">
+  <h3>حملة الراية الخضراء</h3>
+  <canvas id="chart-rayah"></canvas>
+</div>
+
+<div class="chart-container">
+  <h3>حملة الهداية</h3>
+  <canvas id="chart-hydaya"></canvas>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCjLt3g-2GPsMlxXPnzySXpCHl3-FyA80I",
+    authDomain: "hajj2025-56177.firebaseapp.com",
+    projectId: "hajj2025-56177",
+    storageBucket: "hajj2025-56177.appspot.com",
+    messagingSenderId: "199404422758",
+    appId: "1:199404422758:web:35a17e6155f660e0128fa7"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  const campaignTargets = {
+    "حملة الخلف": 100,
+    "حملة الراية الخضراء": 80,
+    "حملة الهداية": 70
+  };
+
+  async function drawCharts() {
+    const snapshot = await db.collection("evaluation").get();
+    const counters = {
+      "حملة الخلف": 0,
+      "حملة الراية الخضراء": 0,
+      "حملة الهداية": 0
+    };
+
+    snapshot.forEach(doc => {
+      const campaign = doc.data().campaign;
+      if (counters[campaign] !== undefined) {
+        counters[campaign]++;
+      }
+    });
+
+    Object.keys(counters).forEach(campaign => {
+      const count = counters[campaign];
+      const total = campaignTargets[campaign];
+      const percent = Math.round((count / total) * 100);
+      const ctx = document.getElementById("chart-" + getKey(campaign)).getContext("2d");
+
+      
+    if (!document.getElementById("chart-" + getKey(campaign))) return;
+    new Chart(ctx, {
+    
+        type: 'doughnut',
+        data: {
+          datasets: [{
+            data: [percent, 100 - percent],
+            backgroundColor: [getColor(campaign), '#eee'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          plugins: {
+            tooltip: { enabled: false },
+            legend: { display: false },
+            title: {
+              display: true,
+              text: percent + '%',
+              position: 'center',
+              color: '#333',
+              font: { size: 16 }
+            }
+          },
+          cutout: '70%'
+        }
+      });
+    });
+  }
+
+  function getKey(name) {
+    return name === "حملة الخلف" ? "khalaf" : name === "حملة الراية الخضراء" ? "rayah" : "hydaya";
+  }
+
+  function getColor(name) {
+    return name === "حملة الخلف" ? "#2d9958" : name === "حملة الراية الخضراء" ? "#fab334" : "#e8593a";
+  }
+
+  drawCharts();
+</script>
+
+</body>
+</html>
