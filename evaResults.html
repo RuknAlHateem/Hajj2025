@@ -2,167 +2,119 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
+  <title>تحليل نتائج الاستبيان</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>تحليل إجابات الاستبيان</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: 'Cairo', sans-serif;
-      margin: 0;
-      background: #f9f9f9;
-      padding: 15px;
-      color: #333;
-    }
-    h2 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #2d9958;
-    }
-    .filters {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    .filter-group {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .filter-group label {
-      margin-bottom: 5px;
-      font-weight: bold;
-    }
-    .card {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
-      padding: 15px;
-      margin-bottom: 15px;
-    }
-    .section-title {
-      font-size: 18px;
-      font-weight: bold;
-      margin: 25px 0 10px;
-      color: #1b6e3c;
-    }
-    .note-group {
-      margin-bottom: 20px;
-    }
-    .note-group h4 {
-      margin-bottom: 5px;
-      color: #2d9958;
-    }
-    .note-item {
-      background: #f0f0f0;
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 5px;
-    }
+    body { font-family: 'Cairo', sans-serif; background: #f9f9f9; padding: 20px; max-width: 800px; margin: auto; }
+    h2 { color: #2d9958; }
+    .section { background: white; padding: 15px; margin: 15px 0; border-radius: 10px; box-shadow: 0 1px 4px #ccc; }
+    .note-box { border-bottom: 1px solid #eee; padding: 5px 0; }
+    .note-title { font-weight: bold; color: #2d9958; margin-top: 10px; }
   </style>
 </head>
 <body>
-  <h2>تحليل إجابات الاستبيان</h2>
-  <div class="filters">
-    <div class="filter-group">
-      <label>الحملة</label>
-      <label><input type="checkbox" checked value="حملة الخلف"> الخلف</label>
-      <label><input type="checkbox" checked value="حملة الراية الخضراء"> الراية الخضراء</label>
-      <label><input type="checkbox" checked value="حملة الهداية"> الهداية</label>
-    </div>
-    <div class="filter-group">
-      <label>الجنس</label>
-      <label><input type="checkbox" checked value="ذكر"> ذكر</label>
-      <label><input type="checkbox" checked value="أنثى"> أنثى</label>
-    </div>
-  </div>
 
-  <div id="results"></div>
+<h2>تحليل نتائج الاستبيان</h2>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyCjLt3g-2GPsMlxXPnzySXpCHl3-FyA80I",
-      authDomain: "hajj2025-56177.firebaseapp.com",
-      projectId: "hajj2025-56177",
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+<div id="results"></div>
 
-    const filters = {
-      campaigns: ["حملة الخلف", "حملة الراية الخضراء", "حملة الهداية"],
-      genders: ["ذكر", "أنثى"]
-    };
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCjLt3g-2GPsMlxXPnzySXpCHl3-FyA80I",
+    authDomain: "hajj2025-56177.firebaseapp.com",
+    projectId: "hajj2025-56177"
+  };
 
-    async function loadAnalysis() {
-      const res = document.getElementById("results");
-      res.innerHTML = "جار التحميل...";
-      const snapshot = await db.collection("evaluation").get();
-      const data = [];
-      snapshot.forEach(doc => {
-        const d = doc.data();
-        if (!filters.campaigns.includes(d.campaign)) return;
-        if (d.gender && !filters.genders.includes(d.gender)) return;
-        data.push(d);
-      });
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 
-      let html = "";
+  const satisfactionMap = {
+    "ممتاز": 4,
+    "جيد": 3,
+    "مقبول": 2,
+    "ضعيف": 1
+  };
 
-      const sections = ["housing", "food", "transport", "logistics", "mina", "arafat"];
-      const sectionNames = {
-        housing: "السكن",
-        food: "التغذية",
-        transport: "النقل",
-        logistics: "الخدمات اللوجستية",
-        mina: "منى",
-        arafat: "عرفة"
-      };
+  const sectionTitles = {
+    housing: "السكن",
+    food: "التغذية",
+    transport: "النقل",
+    logistics: "الخدمات اللوجستية والدعم",
+    mina: "مخيمات منى",
+    arafat: "مخيمات عرفة"
+  };
 
-      for (const section of sections) {
-        const qCounts = {};
-        let total = 0;
-        for (const d of data) {
-          if (!d[section]) continue;
-          for (const [k, v] of Object.entries(d[section])) {
-            total++;
-            if (!qCounts[k]) qCounts[k] = { "ممتاز": 0, "جيد": 0, "مقبول": 0, "ضعيف": 0 };
-            qCounts[k][v] = (qCounts[k][v] || 0) + 1;
+  async function analyze() {
+    const snapshot = await db.collection("evaluation").get();
+    const docs = snapshot.docs.map(d => d.data());
+
+    const sectionTotals = {};
+    const sectionCounts = {};
+    const notes = { positive: [], negative: [], suggestions: [] };
+    let q31Total = 0, q31Count = 0;
+
+    docs.forEach(doc => {
+      for (const section in sectionTitles) {
+        if (!sectionTotals[section]) {
+          sectionTotals[section] = 0;
+          sectionCounts[section] = 0;
+        }
+        const answers = doc[section] || {};
+        for (const key in answers) {
+          const value = answers[key];
+          if (satisfactionMap[value]) {
+            sectionTotals[section] += satisfactionMap[value];
+            sectionCounts[section]++;
+            if (key === "q31") {
+              q31Total += satisfactionMap[value];
+              q31Count++;
+            }
           }
         }
-
-        html += `<div class='section-title'>${sectionNames[section]}</div>`;
-        for (const [k, answers] of Object.entries(qCounts)) {
-          const totalQ = Object.values(answers).reduce((a, b) => a + b, 0);
-          const weak = answers["ضعيف"] || 0;
-          const percent = totalQ ? ((weak / totalQ) * 100).toFixed(1) : 0;
-          html += `<div class="card">ضعيف في ${k.replace("q", "السؤال ")}<br>عدد: ${weak} من ${totalQ} (${percent}%)</div>`;
-        }
       }
 
-      const notes = { positive: [], negative: [], suggestions: [] };
-      for (const d of data) {
-        if (d.notes) {
-          if (d.notes.positive) notes.positive.push(d.notes.positive);
-          if (d.notes.negative) notes.negative.push(d.notes.negative);
-          if (d.notes.suggestions) notes.suggestions.push(d.notes.suggestions);
-        }
+      // Notes
+      if (doc.notes) {
+        if (doc.notes.positive) notes.positive.push(doc.notes.positive);
+        if (doc.notes.negative) notes.negative.push(doc.notes.negative);
+        if (doc.notes.suggestions) notes.suggestions.push(doc.notes.suggestions);
       }
+    });
 
-      html += `<div class='section-title'>الملاحظات المفتوحة</div>`;
-      for (const key of ["positive", "negative", "suggestions"]) {
-        html += `<div class='note-group'><h4>${key === "positive" ? "إيجابي" : key === "negative" ? "سلبي" : "مقترح"}</h4>`;
-        for (const note of notes[key]) {
-          html += `<div class='note-item'>${note}</div>`;
-        }
-        html += `</div>`;
-      }
+    // Render results
+    const container = document.getElementById("results");
 
-      res.innerHTML = html;
+    for (const section in sectionTitles) {
+      const avg = sectionCounts[section] ? (sectionTotals[section] / sectionCounts[section]).toFixed(2) : "0";
+      const percent = sectionCounts[section] ? Math.round((sectionTotals[section] / (sectionCounts[section] * 4)) * 100) : 0;
+      container.innerHTML += `
+        <div class="section">
+          <strong>${sectionTitles[section]}</strong><br>
+          نسبة الرضا: ${percent}%<br>
+          (معدل تقيمي: ${avg} من 4)
+        </div>`;
     }
 
-    loadAnalysis();
-  </script>
+    // سؤال q31
+    if (q31Count > 0) {
+      const q31Percent = Math.round((q31Total / (q31Count * 4)) * 100);
+      container.innerHTML += `
+        <div class="section">
+          <strong>السؤال الأخير (q31):</strong><br>
+          نسبة الرضا: ${q31Percent}% (${q31Count} إجابة)
+        </div>`;
+    }
+
+    // الملاحظات
+    container.innerHTML += `<div class="section"><div class="note-title">الملاحظات الإيجابية</div>${notes.positive.map(n => `<div class="note-box">${n}</div>`).join("")}</div>`;
+    container.innerHTML += `<div class="section"><div class="note-title">الملاحظات السلبية</div>${notes.negative.map(n => `<div class="note-box">${n}</div>`).join("")}</div>`;
+    container.innerHTML += `<div class="section"><div class="note-title">المقترحات</div>${notes.suggestions.map(n => `<div class="note-box">${n}</div>`).join("")}</div>`;
+  }
+
+  analyze();
+</script>
+
 </body>
 </html>
