@@ -2,119 +2,155 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>تحليل نتائج الاستبيان</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تحليل نتائج الاستبيان</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Cairo', sans-serif; background: #f9f9f9; padding: 20px; max-width: 800px; margin: auto; }
-    h2 { color: #2d9958; }
-    .section { background: white; padding: 15px; margin: 15px 0; border-radius: 10px; box-shadow: 0 1px 4px #ccc; }
-    .note-box { border-bottom: 1px solid #eee; padding: 5px 0; }
-    .note-title { font-weight: bold; color: #2d9958; margin-top: 10px; }
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+      max-width: 720px;
+      margin: auto;
+    }
+    h2 {
+      color: #2d9958;
+      margin-bottom: 10px;
+    }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .filter-group {
+      background: #fff;
+      border-radius: 10px;
+      padding: 10px 15px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+    .filter-group label {
+      margin-left: 10px;
+    }
+    .section {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+    }
+    .section h3 {
+      color: #2d9958;
+      margin-top: 0;
+    }
+    .percentage {
+      font-weight: bold;
+      color: #1b6e3c;
+    }
+    ul { padding-right: 20px; }
+    li { margin-bottom: 5px; }
   </style>
 </head>
 <body>
 
-<h2>تحليل نتائج الاستبيان</h2>
+  <h2>تحليل نتائج استبيان الحج</h2>
 
-<div id="results"></div>
+  <div class="filters">
+    <div class="filter-group">
+      <strong>اختر الحملات:</strong><br>
+      <label><input type="checkbox" class="campaign-filter" value="حملة الخلف" checked> الخلف</label>
+      <label><input type="checkbox" class="campaign-filter" value="حملة الراية الخضراء" checked> الراية</label>
+      <label><input type="checkbox" class="campaign-filter" value="حملة الهداية" checked> الهداية</label>
+    </div>
+    <div class="filter-group">
+      <strong>اختر الجنس:</strong><br>
+      <label><input type="checkbox" class="gender-filter" value="ذكر" checked> ذكر</label>
+      <label><input type="checkbox" class="gender-filter" value="أنثى" checked> أنثى</label>
+    </div>
+  </div>
 
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyCjLt3g-2GPsMlxXPnzySXpCHl3-FyA80I",
-    authDomain: "hajj2025-56177.firebaseapp.com",
-    projectId: "hajj2025-56177"
-  };
+  <div id="results"></div>
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCjLt3g-2GPsMlxXPnzySXpCHl3-FyA80I",
+      authDomain: "hajj2025-56177.firebaseapp.com",
+      projectId: "hajj2025-56177",
+      storageBucket: "hajj2025-56177.appspot.com",
+      messagingSenderId: "199404422758",
+      appId: "1:199404422758:web:35a17e6155f660e0128fa7"
+    };
 
-  const satisfactionMap = {
-    "ممتاز": 4,
-    "جيد": 3,
-    "مقبول": 2,
-    "ضعيف": 1
-  };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-  const sectionTitles = {
-    housing: "السكن",
-    food: "التغذية",
-    transport: "النقل",
-    logistics: "الخدمات اللوجستية والدعم",
-    mina: "مخيمات منى",
-    arafat: "مخيمات عرفة"
-  };
+    const ratingValues = { 'ممتاز': 100, 'جيد': 75, 'مقبول': 50, 'ضعيف': 25 };
 
-  async function analyze() {
-    const snapshot = await db.collection("evaluation").get();
-    const docs = snapshot.docs.map(d => d.data());
+    async function loadData() {
+      const snapshot = await db.collection("evaluation").get();
+      const campaignFilters = Array.from(document.querySelectorAll(".campaign-filter:checked")).map(i => i.value);
+      const genderFilters = Array.from(document.querySelectorAll(".gender-filter:checked")).map(i => i.value);
+      const docs = snapshot.docs.map(doc => doc.data()).filter(doc => campaignFilters.includes(doc.campaign) && genderFilters.includes(doc.gender));
 
-    const sectionTotals = {};
-    const sectionCounts = {};
-    const notes = { positive: [], negative: [], suggestions: [] };
-    let q31Total = 0, q31Count = 0;
+      const sections = ['food', 'transport', 'logistics', 'mina', 'arafat'];
+      const sectionLabels = {
+        food: "التغذية",
+        transport: "النقل",
+        logistics: "الخدمات اللوجستية",
+        mina: "منى",
+        arafat: "عرفات"
+      };
 
-    docs.forEach(doc => {
-      for (const section in sectionTitles) {
-        if (!sectionTotals[section]) {
-          sectionTotals[section] = 0;
-          sectionCounts[section] = 0;
-        }
-        const answers = doc[section] || {};
-        for (const key in answers) {
-          const value = answers[key];
-          if (satisfactionMap[value]) {
-            sectionTotals[section] += satisfactionMap[value];
-            sectionCounts[section]++;
-            if (key === "q31") {
-              q31Total += satisfactionMap[value];
-              q31Count++;
-            }
+      const sectionResults = {};
+      sections.forEach(sec => sectionResults[sec] = []);
+      const notes = { positive: [], negative: [], suggestions: [] };
+      let q32Answers = [];
+
+      docs.forEach(entry => {
+        sections.forEach(sec => {
+          const group = entry[sec];
+          if (group) {
+            Object.values(group).forEach(answer => {
+              if (ratingValues[answer]) sectionResults[sec].push(ratingValues[answer]);
+            });
           }
+        });
+        if (entry.arafat?.q32) q32Answers.push(ratingValues[entry.arafat.q32] || 0);
+        if (entry.notes) {
+          if (entry.notes.positive) notes.positive.push(entry.notes.positive);
+          if (entry.notes.negative) notes.negative.push(entry.notes.negative);
+          if (entry.notes.suggestions) notes.suggestions.push(entry.notes.suggestions);
         }
-      }
+      });
 
-      // Notes
-      if (doc.notes) {
-        if (doc.notes.positive) notes.positive.push(doc.notes.positive);
-        if (doc.notes.negative) notes.negative.push(doc.notes.negative);
-        if (doc.notes.suggestions) notes.suggestions.push(doc.notes.suggestions);
-      }
+      let html = '';
+
+      sections.forEach(sec => {
+        const avg = sectionResults[sec].length ? (sectionResults[sec].reduce((a,b) => a + b, 0) / sectionResults[sec].length).toFixed(2) : '0';
+        html += `<div class="section"><h3>${sectionLabels[sec]}</h3><p>نسبة الرضا: <span class="percentage">${avg}%</span></p></div>`;
+      });
+
+      const q32Avg = q32Answers.length ? (q32Answers.reduce((a,b) => a + b, 0) / q32Answers.length).toFixed(2) : '0';
+      html += `<div class="section"><h3>السؤال الأخير (q32)</h3><p>نسبة الرضا: <span class="percentage">${q32Avg}%</span></p></div>`;
+
+      ['positive', 'negative', 'suggestions'].forEach(type => {
+        const label = type === 'positive' ? 'الإيجابيات' : type === 'negative' ? 'السلبيات' : 'المقترحات';
+        if (notes[type].some(t => t.trim() !== '')) {
+          html += `<div class="section"><h3>${label}</h3><ul>${notes[type].filter(n => n.trim() !== '').map(n => `<li>${n}</li>`).join('')}</ul></div>`;
+        }
+      });
+
+      document.getElementById('results').innerHTML = html;
+    }
+
+    document.querySelectorAll(".campaign-filter, .gender-filter").forEach(input => {
+      input.addEventListener("change", loadData);
     });
 
-    // Render results
-    const container = document.getElementById("results");
-
-    for (const section in sectionTitles) {
-      const avg = sectionCounts[section] ? (sectionTotals[section] / sectionCounts[section]).toFixed(2) : "0";
-      const percent = sectionCounts[section] ? Math.round((sectionTotals[section] / (sectionCounts[section] * 4)) * 100) : 0;
-      container.innerHTML += `
-        <div class="section">
-          <strong>${sectionTitles[section]}</strong><br>
-          نسبة الرضا: ${percent}%<br>
-          (معدل تقيمي: ${avg} من 4)
-        </div>`;
-    }
-
-    // سؤال q31
-    if (q31Count > 0) {
-      const q31Percent = Math.round((q31Total / (q31Count * 4)) * 100);
-      container.innerHTML += `
-        <div class="section">
-          <strong>السؤال الأخير (q31):</strong><br>
-          نسبة الرضا: ${q31Percent}% (${q31Count} إجابة)
-        </div>`;
-    }
-
-    // الملاحظات
-    container.innerHTML += `<div class="section"><div class="note-title">الملاحظات الإيجابية</div>${notes.positive.map(n => `<div class="note-box">${n}</div>`).join("")}</div>`;
-    container.innerHTML += `<div class="section"><div class="note-title">الملاحظات السلبية</div>${notes.negative.map(n => `<div class="note-box">${n}</div>`).join("")}</div>`;
-    container.innerHTML += `<div class="section"><div class="note-title">المقترحات</div>${notes.suggestions.map(n => `<div class="note-box">${n}</div>`).join("")}</div>`;
-  }
-
-  analyze();
-</script>
-
+    loadData();
+  </script>
 </body>
 </html>
