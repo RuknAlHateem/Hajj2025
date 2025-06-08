@@ -2,67 +2,20 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>نتائج تقييم الحج - ركن الحطيم</title>
+  <title>اختبار عرض النتائج</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
   <link href="https://fonts.googleapis.com/css2?family=Cairo&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-
   <style>
     body {
       font-family: 'Cairo', sans-serif;
       margin: 0;
       background: #f9f9f9;
-    }
-    header {
-      background: #2d9958;
-      color: white;
-      padding: 20px;
-      text-align: center;
-      position: relative;
-    }
-    header img {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      height: 50px;
-    }
-    h1 {
-      margin: 0;
-      font-size: 22px;
-    }
-    .filters {
-      background: white;
-      padding: 15px;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
-      border-bottom: 2px solid #e0e0e0;
-    }
-    .filter-group {
-      display: flex;
-      gap: 5px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    .filter-btn {
-      padding: 6px 15px;
-      border: 1px solid #2d9958;
-      border-radius: 20px;
-      background: white;
-      color: #2d9958;
-      cursor: pointer;
-    }
-    .filter-btn.active {
-      background: #2d9958;
-      color: white;
-    }
-    .charts-container, .results-container {
       padding: 20px;
     }
+    h1 { text-align: center; color: #2d9958; }
     .card {
       background: white;
       padding: 20px;
@@ -70,57 +23,20 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       margin-bottom: 20px;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-      background: white;
-    }
-    th, td {
+    .warning {
+      background: #ffe5e5;
+      color: #c00;
       padding: 10px;
+      border-radius: 5px;
       text-align: center;
-      border: 1px solid #ccc;
-    }
-    th {
-      background-color: #2d9958;
-      color: white;
-    }
-    @media (max-width: 600px) {
-      header h1 { font-size: 18px; }
-      .filter-btn { padding: 5px 10px; font-size: 13px; }
     }
   </style>
 </head>
 <body>
 
-<header>
-  <img src="logo.png" alt="شعار الشركة">
-  <h1>نتائج تقييم الحجاج - شركة ركن الحطيم</h1>
-</header>
-
-<div class="filters">
-  <div class="filter-group">
-    <strong>الحملة:</strong>
-    <button class="filter-btn" data-group="campaign" data-value="حملة الخلف">الخلف</button>
-    <button class="filter-btn" data-group="campaign" data-value="الراية الخضراء">الراية الخضراء</button>
-    <button class="filter-btn" data-group="campaign" data-value="الهداية">الهداية</button>
-  </div>
-  <div class="filter-group">
-    <strong>الجنس:</strong>
-    <button class="filter-btn" data-group="gender" data-value="ذكر">ذكر</button>
-    <button class="filter-btn" data-group="gender" data-value="أنثى">أنثى</button>
-  </div>
-</div>
-
-<div class="charts-container">
-  <div class="card">
-    <canvas id="summaryChart"></canvas>
-  </div>
-</div>
-
-<div class="results-container">
-  <div class="card" id="results"></div>
-</div>
+<h1>اختبار عرض التقييم</h1>
+<div class="card" id="message">جاري التحميل...</div>
+<div class="card"><canvas id="summaryChart"></canvas></div>
 
 <script>
   const firebaseConfig = {
@@ -135,40 +51,20 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  const selectedFilters = {
-    campaign: new Set(),
-    gender: new Set()
-  };
-
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const group = btn.dataset.group;
-      const value = btn.dataset.value;
-      btn.classList.toggle('active');
-      if (selectedFilters[group].has(value)) {
-        selectedFilters[group].delete(value);
-      } else {
-        selectedFilters[group].add(value);
-      }
-      fetchData();
-    });
-  });
-
   async function fetchData() {
+    const msg = document.getElementById('message');
     const snapshot = await db.collection('evaluation').get();
-    const data = [];
+    if (snapshot.empty) {
+      msg.innerHTML = '<div class="warning">لا توجد بيانات تقييم حالياً.</div>';
+      return;
+    }
 
-    snapshot.forEach(doc => {
-      const entry = doc.data();
-      const campaignMatch = selectedFilters.campaign.size === 0 || selectedFilters.campaign.has(entry.campaign);
-      const genderMatch = selectedFilters.gender.size === 0 || selectedFilters.gender.has(entry.gender);
-      if (campaignMatch && genderMatch) {
-        data.push(entry);
-      }
-    });
+    const data = [];
+    snapshot.forEach(doc => data.push(doc.data()));
+
+    msg.innerHTML = `<strong>تم العثور على ${data.length} تقييم</strong>`;
 
     renderChart(data);
-    renderResults(data);
   }
 
   function renderChart(data) {
@@ -191,8 +87,7 @@
     });
 
     const ctx = document.getElementById('summaryChart').getContext('2d');
-    if (window.summaryChart) window.summaryChart.destroy();
-    window.summaryChart = new Chart(ctx, {
+    new Chart(ctx, {
       type: 'bar',
       data: {
         labels: labels,
@@ -209,51 +104,6 @@
         }
       }
     });
-  }
-
-  function renderResults(data) {
-    const container = document.getElementById('results');
-    container.innerHTML = '';
-
-    const table = document.createElement('table');
-    table.innerHTML = `
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>الاسم</th>
-          <th>الحملة</th>
-          <th>الجنس</th>
-          <th>معدل تقريبي</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${data.map((d, i) => {
-          const allValues = [];
-          ['food', 'arafat', 'mina', 'transport', 'logistics'].forEach(sec => {
-            if (d[sec]) allValues.push(...Object.values(d[sec]));
-          });
-
-          const score = allValues.map(v =>
-            v.includes('ممتاز') ? 5 :
-            v.includes('جيد') ? 4 :
-            v.includes('متوسط') ? 3 :
-            v.includes('ضعيف') ? 2 :
-            v.includes('سيئ') ? 1 : 0
-          );
-
-          const avg = score.length ? (score.reduce((a,b) => a+b,0)/score.length).toFixed(2) : '-';
-
-          return `<tr>
-            <td>${i+1}</td>
-            <td>${d.name || '-'}</td>
-            <td>${d.campaign || '-'}</td>
-            <td>${d.gender || '-'}</td>
-            <td>${avg}</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    `;
-    container.appendChild(table);
   }
 
   fetchData();
