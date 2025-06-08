@@ -2,109 +2,167 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>تحليل إجابات الاستبيان - ركن الحطيم</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تحليل إجابات الاستبيان</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Cairo', sans-serif; background: #f5f5f5; padding: 20px; max-width: 900px; margin: auto; }
-    h2,h3 { text-align: center; color: #444; }
-    .filters { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px; }
-    .filters label { background: #fff; padding: 8px 14px; border-radius: 8px; box-shadow: 0 1px 3px #ccc; }
-    .card { background: #fff; margin-bottom: 20px; border-radius: 10px; padding: 15px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-    .card h4 { margin: 10px 0; }
-    .notes { display: flex; gap: 10px; flex-wrap: wrap; }
-    .note-col { flex: 1; min-width: 250px; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px #ddd; }
-    .note-col h4 { margin-top: 0; }
-    ul { padding-inline-start: 20px; }
+    body {
+      font-family: 'Cairo', sans-serif;
+      margin: 0;
+      background: #f9f9f9;
+      padding: 15px;
+      color: #333;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #2d9958;
+    }
+    .filters {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .filter-group label {
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin: 25px 0 10px;
+      color: #1b6e3c;
+    }
+    .note-group {
+      margin-bottom: 20px;
+    }
+    .note-group h4 {
+      margin-bottom: 5px;
+      color: #2d9958;
+    }
+    .note-item {
+      background: #f0f0f0;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 5px;
+    }
   </style>
 </head>
 <body>
+  <h2>تحليل إجابات الاستبيان</h2>
+  <div class="filters">
+    <div class="filter-group">
+      <label>الحملة</label>
+      <label><input type="checkbox" checked value="حملة الخلف"> الخلف</label>
+      <label><input type="checkbox" checked value="حملة الراية الخضراء"> الراية الخضراء</label>
+      <label><input type="checkbox" checked value="حملة الهداية"> الهداية</label>
+    </div>
+    <div class="filter-group">
+      <label>الجنس</label>
+      <label><input type="checkbox" checked value="ذكر"> ذكر</label>
+      <label><input type="checkbox" checked value="أنثى"> أنثى</label>
+    </div>
+  </div>
 
-<h2>تحليل إجابات الاستبيان</h2>
+  <div id="results"></div>
 
-<div class="filters">
-  <fieldset><legend>الحملة:</legend>
-    <label><input type="checkbox" value="حملة الخلف" checked> الخلف</label>
-    <label><input type="checkbox" value="حملة الراية الخضراء" checked> الراية الخضراء</label>
-    <label><input type="checkbox" value="حملة الهداية" checked> الهداية</label>
-  </fieldset>
-  <fieldset><legend>الجنس:</legend>
-    <label><input type="checkbox" value="ذكر" checked> ذكر</label>
-    <label><input type="checkbox" value="أنثى" checked> أنثى</label>
-  </fieldset>
-</div>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCjLt3g-2GPsMlxXPnzySXpCHl3-FyA80I",
+      authDomain: "hajj2025-56177.firebaseapp.com",
+      projectId: "hajj2025-56177",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-<div id="analytics"></div>
-
-<div class="card notes">
-  <div class="note-col"><h4>إيجابي</h4><ul id="notes-positive"></ul></div>
-  <div class="note-col"><h4>سلبي</h4><ul id="notes-negative"></ul></div>
-  <div class="note-col"><h4>مقترح</h4><ul id="notes-suggestions"></ul></div>
-</div>
-
-<script>
-  // إعداد Firebase:
-  firebase.initializeApp({
-    apiKey: "...", authDomain: "...", projectId: "..."
-  });
-  const db = firebase.firestore();
-
-  const filterEls = { campaigns: [], genders: [] };
-  document.querySelectorAll('.filters input').forEach(chk => chk.addEventListener('change', () => load()));
-
-  async function load() {
-    const checked = field => Array.from(document.querySelectorAll(`.${field}-filter:checked`)).map(i => i.value);
-    filterEls.campaigns = checked('campaign');
-    filterEls.genders = checked('gender');
-
-    const data = (await db.collection('evaluation').get()).docs
-      .map(d => d.data())
-      .filter(r => filterEls.campaigns.includes(r.campaign) && filterEls.genders.includes(r.gender));
-
-    const totalCount = data.length || 1;
-
-    const stats = (key) => {
-      const cnt = data.filter(r => r[key] === 'ضعيف').length;
-      return { cnt, pct: ((cnt/totalCount)*100).toFixed(1) };
+    const filters = {
+      campaigns: ["حملة الخلف", "حملة الراية الخضراء", "حملة الهداية"],
+      genders: ["ذكر", "أنثى"]
     };
 
-    // تحليل ١٠ أسئلة مختارة كمثال:
-    const analyses = [
-      { title: 'ضعيف في نظافة السكن', key: 'housing_q1' },
-      { title: 'ضعيف في توافر الراحة في السكن', key: 'housing_q2' },
-      { title: 'ضعيف في جودة الطعام', key: 'food_q6' },
-      { title: 'ضعيف في مواعيد تقديم الوجبات', key: 'food_q7' },
-      { title: 'ضعيف في راحة النقل', key: 'transport_q10' },
-      { title: 'ضعيف في أمان السائقين', key: 'transport_q11' },
-      { title: 'ضعيف في سرعة الدعم الفني', key: 'logistics_q14' },
-      { title: 'ضعيف في وضوح التعليمات', key: 'logistics_q15' },
-      { title: 'ضعيف في نظافة مخيم منى', key: 'mina_q19' },
-      { title: 'ضعيف في سهولة التفويج من عرفة', key: 'arafat_q29' }
-    ];
+    async function loadAnalysis() {
+      const res = document.getElementById("results");
+      res.innerHTML = "جار التحميل...";
+      const snapshot = await db.collection("evaluation").get();
+      const data = [];
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        if (!filters.campaigns.includes(d.campaign)) return;
+        if (d.gender && !filters.genders.includes(d.gender)) return;
+        data.push(d);
+      });
 
-    document.getElementById('analytics').innerHTML = analyses.map(a => {
-      const s = stats(a.key);
-      return `<div class="card"><h4>${a.title}</h4><p>عدد: ${s.cnt} (${s.pct}%) من ${totalCount}</p></div>`;
-    }).join('');
+      let html = "";
 
-    // الملاحظات:
-    const pos = [], neg = [], sug = [];
-    data.forEach(r => {
-      r.notes.positive && pos.push(r.notes.positive);
-      r.notes.negative && neg.push(r.notes.negative);
-      r.notes.suggestions && sug.push(r.notes.suggestions);
-    });
+      const sections = ["housing", "food", "transport", "logistics", "mina", "arafat"];
+      const sectionNames = {
+        housing: "السكن",
+        food: "التغذية",
+        transport: "النقل",
+        logistics: "الخدمات اللوجستية",
+        mina: "منى",
+        arafat: "عرفة"
+      };
 
-    const fillList = (id, arr) => {
-      document.getElementById(id).innerHTML = arr.map(t => `<li>${t}</li>`).join('');
-    };
-    fillList('notes-positive', pos);
-    fillList('notes-negative', neg);
-    fillList('notes-suggestions', sug);
-  }
+      for (const section of sections) {
+        const qCounts = {};
+        let total = 0;
+        for (const d of data) {
+          if (!d[section]) continue;
+          for (const [k, v] of Object.entries(d[section])) {
+            total++;
+            if (!qCounts[k]) qCounts[k] = { "ممتاز": 0, "جيد": 0, "مقبول": 0, "ضعيف": 0 };
+            qCounts[k][v] = (qCounts[k][v] || 0) + 1;
+          }
+        }
 
-  load();
-</script>
+        html += `<div class='section-title'>${sectionNames[section]}</div>`;
+        for (const [k, answers] of Object.entries(qCounts)) {
+          const totalQ = Object.values(answers).reduce((a, b) => a + b, 0);
+          const weak = answers["ضعيف"] || 0;
+          const percent = totalQ ? ((weak / totalQ) * 100).toFixed(1) : 0;
+          html += `<div class="card">ضعيف في ${k.replace("q", "السؤال ")}<br>عدد: ${weak} من ${totalQ} (${percent}%)</div>`;
+        }
+      }
 
+      const notes = { positive: [], negative: [], suggestions: [] };
+      for (const d of data) {
+        if (d.notes) {
+          if (d.notes.positive) notes.positive.push(d.notes.positive);
+          if (d.notes.negative) notes.negative.push(d.notes.negative);
+          if (d.notes.suggestions) notes.suggestions.push(d.notes.suggestions);
+        }
+      }
+
+      html += `<div class='section-title'>الملاحظات المفتوحة</div>`;
+      for (const key of ["positive", "negative", "suggestions"]) {
+        html += `<div class='note-group'><h4>${key === "positive" ? "إيجابي" : key === "negative" ? "سلبي" : "مقترح"}</h4>`;
+        for (const note of notes[key]) {
+          html += `<div class='note-item'>${note}</div>`;
+        }
+        html += `</div>`;
+      }
+
+      res.innerHTML = html;
+    }
+
+    loadAnalysis();
+  </script>
 </body>
 </html>
