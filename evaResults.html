@@ -182,7 +182,11 @@ sections.forEach(sec => {
 const finalAvg = allRatings.length 
   ? (allRatings.reduce((a,b) => a + b, 0) / allRatings.length).toFixed(2) 
   : '0';
-      html += `<div class="section"><h3>اجمالي نسبة الرضا بشكل عام </h3><p>نسبة الرضا: <span class="percentage">${q32Avg}%</span></p><div class="progress-bar"><div class="progress-fill" style="width:${q32Avg}%"></div></div></div>`;
+html += `<div class="section">
+  <h3>اجمالي نسبة الرضا بشكل عام</h3>
+  <p>نسبة الرضا: <span class="percentage">${finalAvg}%</span></p>
+  <div class="progress-bar"><div class="progress-fill" style="width:${finalAvg}%"></div></div>
+</div>`;
 
       ['positive', 'negative', 'suggestions'].forEach(type => {
         const label = type === 'positive' ? 'الإيجابيات' : type === 'negative' ? 'السلبيات' : 'المقترحات';
