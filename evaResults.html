@@ -172,7 +172,16 @@
         html += `<div class="section"><h3>${sectionLabels[sec]}</h3><p>نسبة الرضا: <span class="percentage">${avg}%</span></p><div class="progress-bar"><div class="progress-fill" style="width:${avg}%"></div></div></div>`;
       });
 
-      const q32Avg = q32Answers.length ? (q32Answers.reduce((a,b) => a + b, 0) / q32Answers.length).toFixed(2) : '0';
+// تجميع كل الدرجات من كل الأقسام
+let allRatings = [];
+sections.forEach(sec => {
+  allRatings = allRatings.concat(sectionResults[sec]);
+});
+
+// حساب المتوسط العام الصحيح
+const finalAvg = allRatings.length 
+  ? (allRatings.reduce((a,b) => a + b, 0) / allRatings.length).toFixed(2) 
+  : '0';
       html += `<div class="section"><h3>اجمالي نسبة الرضا بشكل عام </h3><p>نسبة الرضا: <span class="percentage">${q32Avg}%</span></p><div class="progress-bar"><div class="progress-fill" style="width:${q32Avg}%"></div></div></div>`;
 
       ['positive', 'negative', 'suggestions'].forEach(type => {
